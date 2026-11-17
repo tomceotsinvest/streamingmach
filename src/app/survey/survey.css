@@ -1,0 +1,46 @@
+/* Respondent survey — light, calm, thumb-friendly. Most Prolific respondents are on mobile. */
+.s-shell { min-height: 100vh; background: #f4f2ee; color: #1d1b18; font: 16px/1.5 "Inter", system-ui, -apple-system, Segoe UI, sans-serif; padding: 0 16px 64px; }
+.s-bar { position: sticky; top: 0; height: 4px; background: #e2ded6; margin: 0 -16px; z-index: 2; }
+.s-bar > div { height: 100%; background: #c2410c; transition: width .3s ease; }
+.s-card { max-width: 760px; margin: 32px auto 0; background: #fff; border-radius: 16px; padding: 32px 28px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04); }
+.s-card h1 { font-size: 28px; line-height: 1.2; margin: 0 0 12px; letter-spacing: -.01em; }
+.s-card h2 { font-size: 22px; margin: 0 0 8px; letter-spacing: -.01em; }
+.s-kicker { margin: 0 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: #8a8378; }
+.s-note { color: #6b655c; font-size: 14px; }
+.s-error { color: #b91c1c; font-weight: 500; }
+.s-q { margin: 28px 0 0; }
+.s-q h3 { font-size: 17px; font-weight: 600; margin: 0 0 4px; display: flex; gap: 10px; align-items: baseline; }
+.s-n { font-size: 12px; color: #8a8378; font-weight: 600; }
+.s-hint { margin: 0 0 10px; font-size: 13px; color: #8a8378; }
+.s-input { width: 100%; max-width: 320px; font: inherit; padding: 10px 12px; border: 1px solid #d6d1c7; border-radius: 10px; background: #fff; }
+.s-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.s-opt { font: inherit; font-size: 15px; padding: 9px 14px; border-radius: 999px; border: 1px solid #d6d1c7; background: #fff; color: inherit; cursor: pointer; text-align: left; }
+.s-opt:hover { border-color: #a8a093; }
+.s-opt.on { background: #1d1b18; border-color: #1d1b18; color: #fff; }
+.s-scale { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.s-pt { width: 44px; height: 44px; border-radius: 10px; border: 1px solid #d6d1c7; background: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.s-scale.compact .s-pt { width: 38px; height: 38px; }
+.s-pt.on { background: #c2410c; border-color: #c2410c; color: #fff; }
+.s-attr { display: grid; gap: 10px; margin-top: 8px; }
+.s-attr-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid #f0ece5; padding-bottom: 8px; }
+.s-sub { margin: 14px 0; }
+.s-next { margin-top: 32px; font: inherit; font-weight: 600; font-size: 16px; padding: 13px 28px; border-radius: 12px; border: 0; background: #c2410c; color: #fff; cursor: pointer; }
+.s-next:disabled { background: #d6d1c7; color: #8a8378; cursor: not-allowed; }
+
+/* Viewing grid: a table on wide screens, stacked cards on phones */
+.s-grid { margin-top: 16px; border-top: 1px solid #ece8e1; }
+.s-grid-head, .s-grid-row { display: grid; grid-template-columns: minmax(180px, 1.6fr) repeat(5, 1fr); align-items: center; gap: 4px; }
+.s-grid-head { font-size: 12px; color: #8a8378; padding: 10px 0; text-align: center; position: sticky; top: 4px; background: #fff; z-index: 1; }
+.s-grid-row { padding: 10px 0; border-bottom: 1px solid #f0ece5; }
+.s-title { font-weight: 500; }
+.s-title em { display: block; font-style: normal; font-size: 12px; color: #8a8378; }
+.s-cell { display: flex; justify-content: center; cursor: pointer; }
+.s-cell input { width: 20px; height: 20px; accent-color: #c2410c; cursor: pointer; }
+.s-cell-label { display: none; }
+@media (max-width: 640px) {
+  .s-card { padding: 24px 18px; }
+  .s-grid-head { display: none; }
+  .s-grid-row { grid-template-columns: 1fr; gap: 6px; }
+  .s-cell { justify-content: flex-start; gap: 10px; align-items: center; padding: 4px 0; }
+  .s-cell-label { display: inline; font-size: 14px; }
+}
