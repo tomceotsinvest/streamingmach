@@ -164,3 +164,17 @@ describe("Prolific", () => {
     expect(p.prolific_id_option).toBe("url_parameters");
   });
 });
+
+describe("Prolific UK filter lookup", () => {
+  it("finds the UK choice in object or array choice formats", async () => {
+    const { findUkResidenceFilter } = await import("@/lib/prolific");
+    expect(findUkResidenceFilter([
+      { filter_id: "handedness", title: "Handedness", choices: { "0": "Left" } },
+      { filter_id: "current-country-of-residence", title: "Current Country of Residence", type: "select", choices: { "0": "United States", "1": "United Kingdom" } },
+    ])).toEqual({ filter_id: "current-country-of-residence", selected_values: ["1"] });
+    expect(findUkResidenceFilter([
+      { id: "country-of-residence", question: "What country do you currently reside in?", choices: [{ value: "x7", label: "United Kingdom" }] },
+    ])).toEqual({ filter_id: "country-of-residence", selected_values: ["x7"] });
+    expect(findUkResidenceFilter([{ filter_id: "nationality", title: "Nationality", choices: { "1": "United Kingdom" } }])).toBeNull();
+  });
+});

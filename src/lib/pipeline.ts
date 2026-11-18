@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { config, sql } from "./db";
 import { fetchUkChart, surveyTitleSet, ChartRow, titleFromRow, latestWeeks } from "./netflix";
 import { SURVEY_VERSION, decoyFor } from "./questionnaire";
-import { createAndPublishStudy, stopStudy, rewardPence, parseFilters } from "./prolific";
+import { createAndPublishStudy, stopStudy, rewardPence, ukFilters } from "./prolific";
 import { buildSnapshot, RespondentRecord, Snapshot, TitleMeta } from "./scoring";
 
 export function londonDate(d = new Date()): string {
@@ -53,14 +53,24 @@ async function titleIdsFromDb(): Promise<{ week: string | null; titleIds: string
 // 2. Wave + Prolific -----------------------------------------------------------------------------
 export async function ensureWave(date: string, titleIds: string[]): Promise<{ id: number; created: boolean; studyId: string | null; note: string }> {
   const db = sql();
-  const existing = await db`select id, prolific_study_id from survey_waves where wave_date = ${date}`;
-  if (existing.length) return { id: existing[0].id, created: false, studyId: existing[0].prolific_study_id, note: "wave already exists" };
+  const existing = await db`select id, prolific_study_id, completion_code, places from survey_waves where wave_date = ${date}`;
+  if (existing.length && (existing[0].prolific_study_id || !config.autoPublish()))
+    return { id: existing[0].id, created: false, studyId: existing[0].prolific_study_id, note: "wave already exists" };
 
-  const code = randomBytes(4).toString("hex").toUpperCase();
+  // Resolve the UK filter before creating anything, so a lookup failure never leaves a half-made wave
+  const filters = config.autoPublish() ? await ukFilters() : [];
+  let wave: { id: number; completion_code: string; places: number };
+  if (existing.length) {
+    // Today's wave was made while publishing was off: publish its study now rather than waiting for tomorrow
+    wave = existing[0] as typeof wave;
+  } else {
+    const code = randomBytes(4).toString("hex").toUpperCase();
+    [wave] = (await db`insert into survey_waves (wave_date, survey_version, title_ids, decoy, completion_code, places, status)
+                       values (${date}, ${SURVEY_VERSION}, ${titleIds}, ${decoyFor(date)}, ${code}, ${config.dailyCompletes()}, 'draft')
+                       returning id, completion_code, places`) as unknown as (typeof wave)[];
+  }
+  const code = wave.completion_code;
   const places = config.dailyCompletes();
-  const [wave] = await db`insert into survey_waves (wave_date, survey_version, title_ids, decoy, completion_code, places, status)
-                          values (${date}, ${SURVEY_VERSION}, ${titleIds}, ${decoyFor(date)}, ${code}, ${places}, 'draft')
-                          returning id`;
 
   if (!config.autoPublish()) return { id: wave.id, created: true, studyId: null, note: "PROLIFIC_AUTO_PUBLISH is off — wave created, no study published" };
 
@@ -76,10 +86,10 @@ export async function ensureWave(date: string, titleIds: string[]): Promise<{ id
     minutes,
     rewardPence: rewardPence(minutes, config.hourlyGbp()),
     completionCode: code,
-    filters: parseFilters(),
+    filters,
     projectId: process.env.PROLIFIC_PROJECT_ID || undefined,
   });
-  await db`update survey_waves set prolific_study_id = ${study.id}, status = 'active' where id = ${wave.id}`;
+  await db`update survey_waves set prolific_study_id = ${study.id}, status = 'active', places = ${places} where id = ${wave.id}`;
 
   // Stop studies from waves older than 2 days so spend stays on the current title set
   const stale = await db`select id, prolific_study_id from survey_waves

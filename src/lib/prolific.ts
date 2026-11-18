@@ -75,6 +75,38 @@ export function completionUrl(code: string): string {
   return `https://app.prolific.com/submissions/complete?cc=${encodeURIComponent(code)}`;
 }
 
+type FilterDef = { filter_id?: string; id?: string; title?: string; question?: string; type?: string; choices?: unknown };
+
+/** Find the "country of residence" select filter and the United Kingdom choice in Prolific's filter list. */
+export function findUkResidenceFilter(defs: FilterDef[]): { filter_id: string; selected_values: string[] } | null {
+  const isCountry = (d: FilterDef) => {
+    const text = `${d.filter_id ?? d.id ?? ""} ${d.title ?? ""} ${d.question ?? ""}`.toLowerCase();
+    return text.includes("residence") && text.includes("countr");
+  };
+  for (const d of defs.filter(isCountry)) {
+    const id = d.filter_id ?? d.id;
+    if (!id || !d.choices) continue;
+    // choices may be { "1": "United Kingdom" } or [{ value/id, label/name }]
+    const entries: [string, string][] = Array.isArray(d.choices)
+      ? (d.choices as Record<string, unknown>[]).map((c) => [String(c.value ?? c.id ?? ""), String(c.label ?? c.name ?? "")])
+      : Object.entries(d.choices as Record<string, unknown>).map(([k, v]) => [k, String(v)]);
+    const uk = entries.find(([, label]) => label.trim().toLowerCase() === "united kingdom");
+    if (uk && uk[0]) return { filter_id: id, selected_values: [uk[0]] };
+  }
+  return null;
+}
+
+/** UK-residents filter: PROLIFIC_FILTERS_JSON if set, otherwise looked up live. Throws rather than field outside the UK. */
+export async function ukFilters(): Promise<unknown[]> {
+  const manual = parseFilters();
+  if (manual.length) return manual;
+  const res = await call<{ results?: FilterDef[] } | FilterDef[]>("GET", "/filters/");
+  const defs = Array.isArray(res) ? res : res.results ?? [];
+  const f = findUkResidenceFilter(defs);
+  if (!f) throw new Error("Could not find Prolific's UK country-of-residence filter — not publishing. Set PROLIFIC_FILTERS_JSON manually.");
+  return [f];
+}
+
 export function parseFilters(): unknown[] {
   const raw = process.env.PROLIFIC_FILTERS_JSON;
   if (!raw) return [];
