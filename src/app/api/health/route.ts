@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
-import { sql } from "@/lib/db";
+import { sql, dbUrl } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 // Reports whether the database is reachable and set up. Never returns the connection string or password.
 export async function GET() {
-  const url = process.env.DATABASE_URL ?? "";
-  let shape: Record<string, unknown> = { set: !!url };
+  const url = dbUrl() ?? "";
+  const source = process.env.DATABASE_URL ? "DATABASE_URL" : process.env.POSTGRES_URL ? "POSTGRES_URL" : null;
+  let shape: Record<string, unknown> = { set: !!url, source };
   try {
     const u = new URL(url);
     shape = {
       set: true,
+      source,
       scheme: u.protocol.replace(":", ""),
       host: u.hostname.replace(/^[^.]+/, (m) => (m.length > 4 ? m.slice(0, 4) + "…" : m)),
       port: u.port || "(default)",
