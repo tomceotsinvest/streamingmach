@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { config, sql } from "./db";
 import { fetchUkChart, surveyTitleSet, ChartRow, titleFromRow, latestWeeks } from "./netflix";
 import { SURVEY_VERSION, decoyFor } from "./questionnaire";
-import { createAndPublishStudy, stopStudy, rewardPence, ukFilters } from "./prolific";
+import { createAndPublishStudy, stopStudy, rewardPence, ukFilters, studyStatus, LIVE_STATUSES } from "./prolific";
 import { buildSnapshot, RespondentRecord, Snapshot, TitleMeta } from "./scoring";
 
 export function londonDate(d = new Date()): string {
@@ -53,8 +53,20 @@ async function titleIdsFromDb(): Promise<{ week: string | null; titleIds: string
 // 2. Wave + Prolific -----------------------------------------------------------------------------
 export async function ensureWave(date: string, titleIds: string[]): Promise<{ id: number; created: boolean; studyId: string | null; note: string }> {
   const db = sql();
-  const existing = await db`select id, prolific_study_id, completion_code, places from survey_waves where wave_date = ${date}`;
-  if (existing.length && (existing[0].prolific_study_id || !config.autoPublish()))
+  const existing = await db`select id, prolific_study_id, completion_code, places, status from survey_waves where wave_date = ${date}`;
+  if (existing.length && existing[0].prolific_study_id && config.autoPublish()) {
+    // A study exists: if it isn't actually live (e.g. it sat as a draft for lack of funds), try to publish it again
+    const id = existing[0].prolific_study_id as string;
+    let status = await studyStatus(id).catch((e) => `error: ${(e as Error).message}`);
+    if (!LIVE_STATUSES.includes(status) && !["COMPLETED", "AWAITING REVIEW", "PAUSED"].includes(status)) {
+      await publishExisting(id).catch(() => {});
+      status = await studyStatus(id).catch(() => status);
+    }
+    const live = LIVE_STATUSES.includes(status);
+    await db`update survey_waves set status = ${live ? "active" : `not live: ${status}`.slice(0, 200)} where id = ${existing[0].id}`;
+    return { id: existing[0].id, created: false, studyId: id, note: `study ${status}` };
+  }
+  if (existing.length && !config.autoPublish())
     return { id: existing[0].id, created: false, studyId: existing[0].prolific_study_id, note: "wave already exists" };
 
   // Resolve the UK filter before creating anything, so a lookup failure never leaves a half-made wave
@@ -89,7 +101,10 @@ export async function ensureWave(date: string, titleIds: string[]): Promise<{ id
     filters,
     projectId: process.env.PROLIFIC_PROJECT_ID || undefined,
   });
-  await db`update survey_waves set prolific_study_id = ${study.id}, status = 'active', places = ${places} where id = ${wave.id}`;
+  const live = LIVE_STATUSES.includes(study.status);
+  const waveStatus = live ? "active" : `not live: ${study.status}${study.error ? ` — ${study.error}` : ""}`.slice(0, 200);
+  await db`update survey_waves set prolific_study_id = ${study.id}, status = ${waveStatus}, places = ${places} where id = ${wave.id}`;
+  if (!live) throw new Error(`Prolific study ${study.id} was created but is ${waveStatus}. Check the Prolific balance.`);
 
   // Stop studies from waves older than 2 days so spend stays on the current title set
   const stale = await db`select id, prolific_study_id from survey_waves
@@ -99,6 +114,15 @@ export async function ensureWave(date: string, titleIds: string[]): Promise<{ id
     catch (e) { console.error("stopStudy failed", s.prolific_study_id, e); }
   }
   return { id: wave.id, created: true, studyId: study.id, note: `published ${places} places` };
+}
+
+async function publishExisting(id: string) {
+  const res = await fetch(`https://api.prolific.com/api/v1/studies/${id}/transition/`, {
+    method: "POST",
+    headers: { Authorization: `Token ${process.env.PROLIFIC_API_TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "PUBLISH" }),
+  });
+  if (!res.ok) throw new Error(`publish ${res.status}`);
 }
 
 // 3. Load responses --------------------------------------------------------------------------------

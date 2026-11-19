@@ -57,11 +57,25 @@ export function studyPayload(c: StudyConfig) {
   };
 }
 
-export async function createAndPublishStudy(c: StudyConfig): Promise<{ id: string }> {
+/** Creates the study and asks Prolific to publish it. Returns the id even if publishing fails, so drafts aren't orphaned. */
+export async function createAndPublishStudy(c: StudyConfig): Promise<{ id: string; status: string; error?: string }> {
   const study = await call<{ id: string }>("POST", "/studies/", studyPayload(c));
-  await call("POST", `/studies/${study.id}/transition/`, { action: "PUBLISH" });
-  return { id: study.id };
+  try {
+    await call("POST", `/studies/${study.id}/transition/`, { action: "PUBLISH" });
+  } catch (e) {
+    return { id: study.id, status: "UNPUBLISHED", error: (e as Error).message };
+  }
+  // Prolific can accept the request yet leave the study unpublished (e.g. low balance) — check what it really is
+  const s = await call<{ status?: string }>("GET", `/studies/${study.id}/`).catch(() => ({ status: "UNKNOWN" }));
+  return { id: study.id, status: s.status ?? "UNKNOWN" };
 }
+
+export async function studyStatus(id: string): Promise<string> {
+  const s = await call<{ status?: string }>("GET", `/studies/${id}/`);
+  return s.status ?? "UNKNOWN";
+}
+
+export const LIVE_STATUSES = ["ACTIVE", "PUBLISHING", "SCHEDULED"];
 
 export async function stopStudy(id: string): Promise<void> {
   await call("POST", `/studies/${id}/transition/`, { action: "STOP" });
