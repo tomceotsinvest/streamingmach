@@ -127,7 +127,7 @@ export default function SurveyApp() {
       {page === "intro" && (
         <>
           <h1>What have you been watching on Netflix?</h1>
-          <p>We'll ask which of this week's most popular Netflix shows and films you've seen, and what you thought of a few of them. It takes about 8 minutes.</p>
+          <p>We'll ask which of this week's most popular Netflix series you've seen, and what you thought of a few of them. It takes about 8 minutes.</p>
           <p className="s-note">Your answers are anonymous and used only to rank shows for a public guide to what's worth watching. We don't collect your name or contact details.</p>
           <Next onClick={() => setPage("screener")}>Start</Next>
         </>

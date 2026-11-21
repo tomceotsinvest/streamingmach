@@ -75,7 +75,10 @@ export function latestWeeks(rows: ChartRow[], n = 2): string[] {
  * Titles for today's survey: everything in the latest UK top 10 TV + top 10 films,
  * plus titles from the previous week that dropped out (so their ratings stabilise rather than reset).
  */
-export function surveyTitleSet(rows: ChartRow[]): { current: ChartTitle[]; carryOver: ChartTitle[]; week: string } {
+export function surveyTitleSet(allRows: ChartRow[], opts: { includeFilms?: boolean } = {}): { current: ChartTitle[]; carryOver: ChartTitle[]; week: string } {
+  // Series only by default; set SURVEY_INCLUDE_FILMS=true to bring films back
+  const includeFilms = opts.includeFilms ?? process.env.SURVEY_INCLUDE_FILMS === "true";
+  const rows = includeFilms ? allRows : allRows.filter((r) => r.kind === "tv");
   const [latest, previous] = latestWeeks(rows, 2);
   if (!latest) throw new Error("No UK rows found in Netflix feed");
   const byWeek = (w: string | undefined) =>

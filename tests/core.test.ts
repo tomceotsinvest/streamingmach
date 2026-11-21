@@ -29,10 +29,14 @@ describe("Netflix feed", () => {
     expect(rows.find((r) => r.showTitle === "Slow Burn")?.seasonTitle).toBeNull();
   });
   it("builds the title set with carry-over from the previous week", () => {
-    const set = surveyTitleSet(parseCountryTsv(TSV));
+    const set = surveyTitleSet(parseCountryTsv(TSV), { includeFilms: true });
     expect(set.week).toBe("2026-11-15");
     expect(set.current.map((t) => t.name)).toEqual(["Wednesday: Season 2", "Slow Burn", "The Heist"]);
     expect(set.carryOver.map((t) => t.name)).toEqual(["Old Show: Season 1"]);
+  });
+  it("excludes films by default", () => {
+    const set = surveyTitleSet(parseCountryTsv(TSV));
+    expect(set.current.map((t) => t.kind)).toEqual(["tv", "tv"]);
   });
   it("fails loudly if the feed format changes", () => {
     expect(() => parseCountryTsv("a\tb\nx\ty")).toThrow(/missing column/);

@@ -13,7 +13,7 @@ const CATEGORIES: { key: string; label: string; filter: (t: TitleScore) => boole
   })),
   { key: "family", label: "Family-friendly", filter: (t) => (t.kidSafe ?? 0) >= 0.5 },
 ];
-const EXAMPLES = ["Something funny to watch with my kids", "A gripping series to binge", "An easy film for date night", "What's everyone watching?"];
+const EXAMPLES = ["Something funny to watch with my kids", "A gripping series to binge", "Something easy for date night", "What's everyone watching?"];
 const PROFILE_KEY = "sm-profile-v1";
 
 export default function Dashboard({ snap, brand }: { snap: Snapshot; brand: string }) {
@@ -36,7 +36,9 @@ export default function Dashboard({ snap, brand }: { snap: Snapshot; brand: stri
   const trending = useMemo(() => [...snap.titles].sort((a, b) => b.momentum - a.momentum).slice(0, 5), [snap]);
   const top = useMemo(() => [...scored].sort((a, b) => b.viewerScore! - a.viewerScore!), [scored]);
   const forYou = useMemo(() => (matches ? [...scored].sort((a, b) => score(b) - score(a)).slice(0, 6) : []), [scored, matches]); // eslint-disable-line react-hooks/exhaustive-deps
-  const category = CATEGORIES.find((c) => c.key === cat)!;
+  const hasFilms = snap.titles.some((t) => t.kind === "film");
+  const cats = hasFilms ? CATEGORIES : CATEGORIES.filter((c) => c.key !== "tv" && c.key !== "film");
+  const category = cats.find((c) => c.key === cat) ?? cats[0];
   const inCategory = useMemo(() => [...scored].filter(category.filter).sort((a, b) => score(b) - score(a)), [scored, category, matches]); // eslint-disable-line react-hooks/exhaustive-deps
   const results: Ranked[] = useMemo(() => {
     if (!filters) return [];
@@ -120,14 +122,14 @@ export default function Dashboard({ snap, brand }: { snap: Snapshot; brand: stri
 
       <section className="block">
         <div className="block-head"><h2>Top by category</h2></div>
-        <div className="tabs" role="tablist">{CATEGORIES.map((c) => (
-          <button key={c.key} role="tab" aria-selected={cat === c.key} className={cat === c.key ? "on" : ""} onClick={() => setCat(c.key)}>{c.label}</button>))}</div>
+        <div className="tabs" role="tablist">{cats.map((c) => (
+          <button key={c.key} role="tab" aria-selected={category.key === c.key} className={category.key === c.key ? "on" : ""} onClick={() => setCat(c.key)}>{c.label}</button>))}</div>
         <div className="cards wrap">{inCategory.slice(0, 10).map((t, i) => <Card key={t.id} n={i + 1} t={t} shownScore={score(t)} onOpen={setOpen} />)}
           {!inCategory.length && <p className="sub">No titles in this category this week.</p>}</div>
       </section>
 
       <footer className="foot">
-        <p><strong>How this works.</strong> Every day we survey UK Netflix viewers about the current UK Top 10 series and films. Scores combine their rating and how strongly they'd recommend it, weighted to match the UK adult population, over the last 7 days.</p>
+        <p><strong>How this works.</strong> Every day we survey UK Netflix viewers about the current UK Top 10 series. Scores combine their rating and how strongly they'd recommend it, weighted to match the UK adult population, over the last 7 days.</p>
         <p>A title needs 100 ratings for a full score; 50–99 shows as Early. ± is the 95% margin of error. Week window {snap.window.from} to {snap.window.to}; effective sample {snap.sample.effectiveN.toLocaleString("en-GB")}. Not affiliated with Netflix.</p>
       </footer>
 
