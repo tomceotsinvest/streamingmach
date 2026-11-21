@@ -11,9 +11,11 @@ export async function POST(req: Request) {
 
   // Screen-outs are recorded (for incidence tracking) but carry no answers
   if (body?.screenedOut) {
+    // Paid via the normal completion code: Prolific doesn't allow unpaid in-study screen-outs
+    const [w] = await db`select completion_code from survey_waves where id = ${Number(body.waveId) || 0}`;
     await db`insert into respondents (wave_id, prolific_pid, session_id, status, started_at)
              values (${Number(body.waveId) || null}, ${body.prolificPid ?? null}, ${body.sessionId ?? null}, 'screened', ${body.startedAt ?? null})`;
-    return NextResponse.json({ screened: true });
+    return NextResponse.json({ screened: true, redirect: w ? completionUrl(w.completion_code) : null });
   }
 
   const parsed = SubmissionSchema.safeParse(body);

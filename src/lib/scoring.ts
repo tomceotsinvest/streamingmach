@@ -75,6 +75,7 @@ export type Snapshot = {
   titles: TitleScore[];
   raters: RaterRow[];
   demo?: boolean;
+  preview?: string; // set on unpublished previews; shown as a banner
 };
 
 /** Per-rating composite: mean of these equals Viewer Score exactly. */
@@ -155,7 +156,10 @@ export function buildSnapshot(args: {
   current: RespondentRecord[];
   previous: RespondentRecord[];
   previousScores?: Map<string, number | null>;
+  thresholds?: { scored: number; early: number };
 }): Snapshot {
+  const minScored = args.thresholds?.scored ?? MIN_SCORED;
+  const minEarly = args.thresholds?.early ?? MIN_EARLY;
   const { titles, current, previous } = args;
   const excluded = qualityExclusions(current);
   const valid = current.filter((r) => !excluded.has(r.id));
@@ -245,7 +249,7 @@ export function buildSnapshot(args: {
     segs.sort((a, b) => b.score - a.score);
     const spread = segs.length >= 2 && segs[0].score - segs[segs.length - 1].score >= 5;
 
-    const status: TitleScore["status"] = n >= MIN_SCORED ? "scored" : n >= MIN_EARLY ? "early" : "too_new";
+    const status: TitleScore["status"] = n >= minScored ? "scored" : n >= minEarly ? "early" : "too_new";
     const show = status !== "too_new";
     const prevScore = args.previousScores?.get(t.id);
     const viewerScore = show && vs != null ? round(vs, 1) : null;

@@ -62,6 +62,7 @@ export default function Dashboard({ snap, brand }: { snap: Snapshot; brand: stri
   return (
     <div className="app">
       {snap.demo && <div className="demo">Demo data — fictional titles and synthetic responses, for preview only.</div>}
+      {snap.preview && <div className="demo">{snap.preview}</div>}
       <header className="top">
         <div className="brand"><span className="mark" aria-hidden>▶</span>{brand}</div>
         <div className="scope"><span className="pill">Netflix</span><span className="pill muted">UK</span></div>

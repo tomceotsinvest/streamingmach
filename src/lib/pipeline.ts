@@ -181,7 +181,8 @@ export async function latestPublishedSnapshot(): Promise<Snapshot | null> {
 }
 
 // 5. Score + publish -------------------------------------------------------------------------------
-export async function computeAndPublish(date: string, titleIds: string[], chartWeek: string | null) {
+export async function computeSnapshot(date: string, titleIds: string[], chartWeek: string | null,
+  thresholds?: { scored: number; early: number }) {
   const db = sql();
   const to = addDays(date, 1);            // include today so far
   const from = addDays(to, -7);
@@ -200,7 +201,22 @@ export async function computeAndPublish(date: string, titleIds: string[], chartW
   const snapshot = buildSnapshot({
     snapshotDate: date, chartWeek, window: { from, to: date }, titles, current, previous,
     previousScores: prev ? new Map(prev.titles.map((t) => [t.id, t.viewerScore])) : undefined,
+    thresholds,
   });
+  return { snapshot, prev };
+}
+
+/** Latest wave's titles and chart week, for previews outside the daily run. */
+export async function currentTitleSet(): Promise<{ titleIds: string[]; week: string | null }> {
+  const db = sql();
+  const [w] = await db`select title_ids from survey_waves order by wave_date desc limit 1`;
+  const [c] = await db`select max(chart_week) as week from chart_entries where platform='netflix'`;
+  return { titleIds: w?.title_ids ?? [], week: c?.week ? new Date(c.week).toISOString().slice(0, 10) : null };
+}
+
+export async function computeAndPublish(date: string, titleIds: string[], chartWeek: string | null) {
+  const db = sql();
+  const { snapshot, prev } = await computeSnapshot(date, titleIds, chartWeek);
   const guard = guardrails(snapshot, prev);
   await db`insert into snapshots (snapshot_date, published, guardrails, data)
            values (${date}, ${guard.ok}, ${db.json(guard as never)}, ${db.json(snapshot as never)})`;

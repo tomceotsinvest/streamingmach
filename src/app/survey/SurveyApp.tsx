@@ -77,9 +77,11 @@ export default function SurveyApp() {
 
   async function screenOut() {
     setBusy(true);
-    await fetch("/api/survey/submit", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ screenedOut: true, waveId, prolificPid: pid, sessionId, startedAt }) }).catch(() => {});
+    const j = await fetch("/api/survey/submit", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ screenedOut: true, waveId, prolificPid: pid, sessionId, startedAt }) })
+      .then((r) => r.json()).catch(() => ({}));
     setPage("screened"); setBusy(false);
+    if (j.redirect) setTimeout(() => { window.location.href = j.redirect; }, 2500);
   }
 
   function afterScreener() {
@@ -276,7 +278,7 @@ export default function SurveyApp() {
         </>
       )}
 
-      {page === "screened" && (<><h1>Thanks for your time</h1><p>This survey is for UK adults who can watch Netflix, so it isn't a match this time. Please return the study on Prolific.</p></>)}
+      {page === "screened" && (<><h1>Thanks for your time</h1><p>This survey is for people who can watch Netflix, so we won't ask you any more questions. You'll still be paid in full — taking you back to Prolific now…</p></>)}
       {page === "done" && (<><h1>Thank you</h1><p>Taking you back to Prolific…</p></>)}
     </Shell>
   );
