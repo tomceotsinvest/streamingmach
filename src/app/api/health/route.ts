@@ -24,7 +24,10 @@ export async function GET() {
   try {
     const db = sql();
     const tables = await db`select table_name from information_schema.tables where table_schema='public' order by 1`;
-    const waves = await db`select id, wave_date, status, array_length(title_ids,1) as titles, prolific_study_id is not null as has_study from survey_waves order by id desc limit 3`;
+    const waves = await db`select w.id, w.wave_date, w.status, array_length(w.title_ids,1) as titles, w.prolific_study_id is not null as has_study, w.places,
+        (select count(*)::int from respondents r where r.wave_id=w.id and r.status='complete') as completes,
+        (select count(*)::int from respondents r where r.wave_id=w.id and r.status='screened') as screened
+      from survey_waves w order by w.id desc limit 5`;
     const [resp] = await db`select
         count(*) filter (where status='complete')::int as completes,
         count(*) filter (where status='screened')::int as screened_out,
