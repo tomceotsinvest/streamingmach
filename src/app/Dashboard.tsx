@@ -16,7 +16,7 @@ const CATEGORIES: { key: string; label: string; filter: (t: TitleScore) => boole
 const EXAMPLES = ["Something funny to watch with my kids", "A gripping series to binge", "Something easy for date night", "What's everyone watching?"];
 const PROFILE_KEY = "sm-profile-v1";
 
-export default function Dashboard({ snap, brand }: { snap: Snapshot; brand: string }) {
+export default function Dashboard({ snap, brand, theme }: { snap: Snapshot; brand: string; theme?: string }) {
   const [profile, setProfile] = useState<Profile>({});
   const [tuneOpen, setTuneOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -62,6 +62,7 @@ export default function Dashboard({ snap, brand }: { snap: Snapshot; brand: stri
   const asOf = new Date(`${snap.snapshotDate}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
   return (
+    <div className="shell" data-theme={theme === "paper" || theme === "clean" ? theme : undefined}>
     <div className="app">
       {snap.demo && <div className="demo">Demo data — fictional titles and synthetic responses, for preview only.</div>}
       {snap.preview && <div className="demo">{snap.preview}</div>}
@@ -134,6 +135,7 @@ export default function Dashboard({ snap, brand }: { snap: Snapshot; brand: stri
       </footer>
 
       {open && <Drawer t={open} match={matches?.get(open.id)} onClose={() => setOpen(null)} />}
+    </div>
     </div>
   );
 }
