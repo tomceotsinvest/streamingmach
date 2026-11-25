@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import Dashboard from "./Dashboard";
+import ChartDashboard from "./ChartDashboard";
 import { hasDb } from "@/lib/db";
 import { latestPublishedSnapshot } from "@/lib/pipeline";
 import type { Snapshot } from "@/lib/scoring";
@@ -19,10 +20,13 @@ async function loadSnapshot(): Promise<Snapshot | null> {
 }
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ theme?: string }> }) {
-  const theme = (await searchParams).theme ?? process.env.NEXT_PUBLIC_THEME;
+  const theme = (await searchParams).theme ?? process.env.NEXT_PUBLIC_THEME ?? "chart";
   const snap = await loadSnapshot();
   if (!snap) {
     return <main className="empty"><h1>No ratings published yet</h1><p>The first scores appear once enough viewers have taken the survey.</p></main>;
   }
-  return <Dashboard snap={snap} brand={process.env.NEXT_PUBLIC_BRAND ?? "Streaming Machine"} theme={theme} />;
+  const brand = process.env.NEXT_PUBLIC_BRAND ?? "Streaming Machine";
+  // "chart" (Concept C, Dusk) is the chosen design; ?theme=dark|paper|clean keeps the earlier versions viewable
+  if (theme === "chart") return <ChartDashboard snap={snap} brand={brand} />;
+  return <Dashboard snap={snap} brand={brand} theme={theme} />;
 }

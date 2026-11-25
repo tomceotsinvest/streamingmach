@@ -14,7 +14,7 @@ const CATEGORIES: { key: string; label: string; filter: (t: TitleScore) => boole
   { key: "family", label: "Family-friendly", filter: (t) => (t.kidSafe ?? 0) >= 0.5 },
 ];
 const EXAMPLES = ["Something funny to watch with my kids", "A gripping series to binge", "Something easy for date night", "What's everyone watching?"];
-const PROFILE_KEY = "sm-profile-v1";
+export const PROFILE_KEY = "sm-profile-v1";
 
 export default function Dashboard({ snap, brand, theme }: { snap: Snapshot; brand: string; theme?: string }) {
   const [profile, setProfile] = useState<Profile>({});
@@ -182,7 +182,7 @@ function Row({ t, n, shown, why, match, onOpen }: { t: TitleScore; n: number; sh
   );
 }
 
-function Tune({ profile, onChange, onDone, compact }: { profile: Profile; onChange: (p: Profile) => void; onDone: () => void; compact: boolean }) {
+export function Tune({ profile, onChange, onDone, compact }: { profile: Profile; onChange: (p: Profile) => void; onDone: () => void; compact: boolean }) {
   const toggleGenre = (g: string) => {
     const gs = profile.genres ?? [];
     onChange({ ...profile, genres: gs.includes(g) ? gs.filter((x) => x !== g) : gs.length >= 3 ? gs : [...gs, g] });
@@ -207,7 +207,7 @@ function Tune({ profile, onChange, onDone, compact }: { profile: Profile; onChan
   );
 }
 
-function Drawer({ t, match, onClose }: { t: TitleScore; match?: Match; onClose: () => void }) {
+export function Drawer({ t, match, onClose }: { t: TitleScore; match?: Match; onClose: () => void }) {
   useEffect(() => { const k = (e: KeyboardEvent) => e.key === "Escape" && onClose(); window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose]);
   const pct = (x: number | null | undefined) => (x == null ? "–" : `${Math.round(x * 100)}%`);
   const occ = OCCASION_KEYS.map((k) => ({ k, v: t.occasions[k] ?? 0 })).sort((a, b) => b.v - a.v).slice(0, 3);
