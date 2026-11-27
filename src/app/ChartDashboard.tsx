@@ -163,14 +163,14 @@ export default function ChartDashboard({ snap, brand }: { snap: Snapshot; brand:
 
         <section className="c-section">
           <div className="c-head">
-            <h2 className="c-h1">The Top 10</h2>
+            <h2 className="c-h1">The Top {Math.min(20, top.length)}</h2>
             <p className="c-muted c-narrow">Viewer Score out of 100: how much people rated it, and how strongly they'd recommend it.</p>
           </div>
           <div className="c-table-wrap">
             <table className="c-table">
               <thead><tr><th scope="col">Rank</th><th scope="col">Series</th><th scope="col">Viewers say</th><th scope="col">Ratings</th><th scope="col" className="r">Score</th></tr></thead>
               <tbody>
-                {top.slice(0, 10).map((t, i) => (
+                {top.slice(0, 20).map((t, i) => (
                   <tr key={t.id}>
                     <td className="c-rank">{pad(i + 1)}</td>
                     <td><button type="button" className="c-tname" onClick={() => setOpen(t)}>{t.name}</button><div className="c-muted c-small">{kindLabel(t)}</div></td>

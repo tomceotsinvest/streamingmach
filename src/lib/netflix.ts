@@ -75,17 +75,24 @@ export function latestWeeks(rows: ChartRow[], n = 2): string[] {
  * Titles for today's survey: everything in the latest UK top 10 TV + top 10 films,
  * plus titles from the previous week that dropped out (so their ratings stabilise rather than reset).
  */
-export function surveyTitleSet(allRows: ChartRow[], opts: { includeFilms?: boolean } = {}): { current: ChartTitle[]; carryOver: ChartTitle[]; week: string } {
+export const CHART_LOOKBACK_WEEKS = 6;
+export function surveyTitleSet(allRows: ChartRow[], opts: { includeFilms?: boolean; target?: number } = {}): { current: ChartTitle[]; carryOver: ChartTitle[]; week: string } {
   // Series only by default; set SURVEY_INCLUDE_FILMS=true to bring films back
   const includeFilms = opts.includeFilms ?? process.env.SURVEY_INCLUDE_FILMS === "true";
   const rows = includeFilms ? allRows : allRows.filter((r) => r.kind === "tv");
-  const [latest, previous] = latestWeeks(rows, 2);
+  // Aim for a Top 20: this week's chart, then the most recent drop-outs (newest week first, by rank)
+  const target = opts.target ?? Number(process.env.SURVEY_TITLES ?? 20);
+  const weeks = latestWeeks(rows, CHART_LOOKBACK_WEEKS);
+  const latest = weeks[0];
   if (!latest) throw new Error("No UK rows found in Netflix feed");
   const byWeek = (w: string | undefined) =>
     rows.filter((r) => r.week === w).sort((a, b) => (a.kind === b.kind ? a.rank - b.rank : a.kind === "tv" ? -1 : 1));
   const current = dedupe(byWeek(latest).map(titleFromRow));
   const currentIds = new Set(current.map((t) => t.id));
-  const carryOver = dedupe(byWeek(previous).map(titleFromRow)).filter((t) => !currentIds.has(t.id));
+  const older = dedupe(weeks.slice(1).flatMap((w) => byWeek(w).map(titleFromRow))).filter((t) => !currentIds.has(t.id));
+  // Always keep last week's drop-outs; fill further back only up to the target
+  const lastWeekIds = new Set(byWeek(weeks[1]).map((r) => titleFromRow(r).id));
+  const carryOver = older.filter((t, i) => lastWeekIds.has(t.id) || current.length + i < target);
   return { current, carryOver, week: latest };
 }
 

@@ -1,7 +1,7 @@
 // The daily loop: chart → survey wave → Prolific → clean → weight → score → guardrails → publish.
 import { randomBytes } from "node:crypto";
 import { config, sql } from "./db";
-import { fetchUkChart, surveyTitleSet, ChartRow, titleFromRow, latestWeeks } from "./netflix";
+import { fetchUkChart, surveyTitleSet, ChartRow, titleFromRow, latestWeeks, CHART_LOOKBACK_WEEKS } from "./netflix";
 import { SURVEY_VERSION, decoyFor, RETIRED_DECOYS } from "./questionnaire";
 import { createAndPublishStudy, stopStudy, rewardPence, ukFilters, studyStatus, LIVE_STATUSES } from "./prolific";
 import { buildSnapshot, RespondentRecord, Snapshot, TitleMeta } from "./scoring";
@@ -21,7 +21,7 @@ type Step = { step: string; ok: boolean; detail: string };
 export async function refreshChart(rows?: ChartRow[]): Promise<{ week: string; titleIds: string[] }> {
   const db = sql();
   const chart = rows ?? (await fetchUkChart());
-  const weeks = latestWeeks(chart, 2);
+  const weeks = latestWeeks(chart, CHART_LOOKBACK_WEEKS);
   const recent = chart.filter((r) => weeks.includes(r.week));
   for (const r of recent) {
     const t = titleFromRow(r);
@@ -39,14 +39,14 @@ export async function refreshChart(rows?: ChartRow[]): Promise<{ week: string; t
 
 async function titleIdsFromDb(): Promise<{ week: string | null; titleIds: string[] }> {
   const db = sql();
-  const weeks = await db`select distinct chart_week from chart_entries where platform='netflix' order by chart_week desc limit 2`;
+  const weeks = await db`select distinct chart_week from chart_entries where platform='netflix' order by chart_week desc limit ${CHART_LOOKBACK_WEEKS}`;
   if (!weeks.length) return { week: null, titleIds: [] };
   const latest = weeks[0].chart_week as Date;
   const rows = await db`select chart_week, kind, rank, title_id from chart_entries
                         where platform='netflix' and chart_week = any(${weeks.map((w) => w.chart_week)})
                         order by chart_week desc, kind desc, rank`;
   const ids: string[] = [];
-  for (const r of rows) if (!ids.includes(r.title_id)) ids.push(r.title_id);
+  for (const r of rows) if (!ids.includes(r.title_id) && ids.length < Number(process.env.SURVEY_TITLES ?? 20)) ids.push(r.title_id);
   return { week: new Date(latest).toISOString().slice(0, 10), titleIds: ids };
 }
 

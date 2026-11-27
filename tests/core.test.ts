@@ -34,6 +34,11 @@ describe("Netflix feed", () => {
     expect(set.current.map((t) => t.name)).toEqual(["Wednesday: Season 2", "Slow Burn", "The Heist"]);
     expect(set.carryOver.map((t) => t.name)).toEqual(["Old Show: Season 1"]);
   });
+  it("back-fills from older weeks up to the target, always keeping last week's drop-outs", () => {
+    const older = TSV + "\nUnited Kingdom\tGB\t2026-11-01\tTV\t1\tAncient\tAncient: Season 1\t4\nUnited Kingdom\tGB\t2026-11-01\tTV\t2\tAncient Two\tN/A\t4";
+    expect(surveyTitleSet(parseCountryTsv(older), { target: 4 }).carryOver.map((t) => t.name)).toEqual(["Old Show: Season 1", "Ancient: Season 1"]);
+    expect(surveyTitleSet(parseCountryTsv(older), { target: 2 }).carryOver.map((t) => t.name)).toEqual(["Old Show: Season 1"]);
+  });
   it("excludes films by default", () => {
     const set = surveyTitleSet(parseCountryTsv(TSV));
     expect(set.current.map((t) => t.kind)).toEqual(["tv", "tv"]);
