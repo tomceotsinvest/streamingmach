@@ -77,6 +77,8 @@
 .c-stats dt { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
 .c-stats dd { margin: 4px 0 0; font-family: var(--c-display); font-size: 48px; line-height: 1; font-weight: 800; font-stretch: 75%; color: var(--c-ink); }
 .c-stats dd small { font-size: 20px; font-weight: 700; color: var(--c-muted); margin-left: 2px; }
+.c-desc { margin: 6px 0 0; max-width: 620px; font-size: 14px; line-height: 1.45; color: var(--c-body); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.c-desc-hero { margin: 0 0 16px; font-size: 17px; -webkit-line-clamp: 3; }
 .c-hero-note { margin: 28px 0 0; max-width: 620px; font-size: 19px; }
 .c-climb { flex: 1 1 340px; min-width: 0; padding: 40px 0 40px 40px; box-sizing: border-box; }
 .c-climb .c-muted { margin: 0 0 20px; font-size: 14px; }

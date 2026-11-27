@@ -235,6 +235,7 @@ export function Drawer({ t, match, onClose }: { t: TitleScore; match?: Match; on
         <button className="close" onClick={onClose} aria-label="Close">×</button>
         <p className="kicker">{t.kind === "tv" ? "Series" : "Film"}{t.chartRank ? ` · #${t.chartRank} in the UK Netflix ${t.kind === "tv" ? "series" : "films"} chart` : ""}</p>
         <h2>{t.name}</h2>
+        {t.description && <p className="desc">{t.description}{t.descriptionUrl && <> <a href={t.descriptionUrl} target="_blank" rel="noopener noreferrer" className="muted">{t.descriptionSource === "tmdb" ? "TMDB" : "Wikipedia"}</a></>}</p>}
         {t.viewerScore == null ? (
           <p className="sub">Too new to score — {t.raters} ratings so far. Scores appear at 50.</p>
         ) : (

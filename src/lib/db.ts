@@ -40,6 +40,10 @@ export function ensureSchema(): Promise<void> {
     await db`alter table respondents add column if not exists uk_check smallint`;
     await db`alter table respondents add column if not exists uk_seconds int`;
     await db`alter table respondents add column if not exists past_vote text`;
+    await db`alter table titles add column if not exists description text`;
+    await db`alter table titles add column if not exists description_source text`;
+    await db`alter table titles add column if not exists description_url text`;
+    await db`alter table titles add column if not exists description_checked_at timestamptz`;
   })().catch((e) => { schemaReady = null; throw e; });
   return schemaReady;
 }

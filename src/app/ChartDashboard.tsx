@@ -128,6 +128,7 @@ export default function ChartDashboard({ snap, brand }: { snap: Snapshot; brand:
                 <div className="c-hero-text">
                   <h2 className="c-hero-title"><button type="button" onClick={() => setOpen(hero)}>{hero.name}</button></h2>
                   <p className="c-body">{kindLabel(hero)} · {hero.raters.toLocaleString("en-GB")} ratings</p>
+                  {hero.description && <p className="c-desc c-desc-hero">{hero.description}</p>}
                   <div className="c-tags">{hero.tags.map((k) => <span key={k}>{ATTRIBUTES[k]}</span>)}</div>
                 </div>
               </div>
@@ -173,7 +174,8 @@ export default function ChartDashboard({ snap, brand }: { snap: Snapshot; brand:
                 {top.slice(0, 20).map((t, i) => (
                   <tr key={t.id}>
                     <td className="c-rank">{pad(i + 1)}</td>
-                    <td><button type="button" className="c-tname" onClick={() => setOpen(t)}>{t.name}</button><div className="c-muted c-small">{kindLabel(t)}</div></td>
+                    <td><button type="button" className="c-tname" onClick={() => setOpen(t)}>{t.name}</button><div className="c-muted c-small">{kindLabel(t)}</div>
+                      {t.description && <p className="c-desc">{t.description}</p>}</td>
                     <td className="c-tags-cell">{tags(t) || "–"}</td>
                     <td className="c-body">{t.raters.toLocaleString("en-GB")}</td>
                     <td className="r">
@@ -234,6 +236,7 @@ export default function ChartDashboard({ snap, brand }: { snap: Snapshot; brand:
 
         <footer className="c-foot">
           <span>Surveyed daily, weighted to the UK adult population over the last 7 days. A full score needs 100 ratings; 50–99 shows as Early.</span>
+          <span>Show descriptions from <a href="https://www.wikipedia.org" className="c-accent">Wikipedia</a> (CC BY-SA){snap.titles.some((t) => t.descriptionSource === "tmdb") && <> and <a href="https://www.themoviedb.org" className="c-accent">TMDB</a>. This product uses the TMDB API but is not endorsed or certified by TMDB</>}.</span>
           <span>Not affiliated with Netflix. · <a href="/uk" className="c-accent">UK Pulse →</a></span>
         </footer>
       </div>

@@ -208,3 +208,12 @@ describe("UK Pulse", () => {
     expect(ukValid({ check: 2, seconds: 5 })).toBe(false);
   });
 });
+
+import { shorten } from "@/lib/describe";
+describe("descriptions", () => {
+  it("trims to whole sentences", () => {
+    const t = "First sentence here. Second one is a bit longer than the first. " + "x".repeat(300) + ".";
+    expect(shorten(t, 80)).toBe("First sentence here. Second one is a bit longer than the first.");
+    expect(shorten("Short.", 80)).toBe("Short.");
+  });
+});

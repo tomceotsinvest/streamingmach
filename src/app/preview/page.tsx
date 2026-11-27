@@ -1,6 +1,6 @@
 import Dashboard from "../Dashboard";
 import ChartDashboard from "../ChartDashboard";
-import { computeSnapshot, currentTitleSet, londonDate } from "@/lib/pipeline";
+import { computeSnapshot, currentTitleSet, londonDate, fillDescriptions } from "@/lib/pipeline";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Preview (unpublished)", robots: { index: false, follow: false } };
@@ -11,6 +11,8 @@ export default async function Preview({ searchParams }: { searchParams: Promise<
   const theme = (await searchParams).theme ?? process.env.NEXT_PUBLIC_THEME ?? "chart";
   const { titleIds, week } = await currentTitleSet();
   if (!titleIds.length) return <main className="empty"><h1>No survey wave yet</h1></main>;
+  // Fill any missing show descriptions (rechecked weekly; at most a few seconds)
+  await fillDescriptions(titleIds, 25).catch((e) => console.error(e));
   const { snapshot } = await computeSnapshot(londonDate(), titleIds, week, { scored: 10, early: 3 });
   const s = snapshot.sample;
   snapshot.preview = `Unpublished preview · ${s.valid} valid responses (${s.excluded} excluded) · scores shown from 3 ratings, so expect big swings · not for sharing`;

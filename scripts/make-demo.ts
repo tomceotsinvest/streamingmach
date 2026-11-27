@@ -37,6 +37,7 @@ const S: Spec[] = [
 ];
 const titles: TitleMeta[] = S.map((s, i) => ({
   id: `${s.kind}-demo-${i}`, name: s.name, kind: s.kind, chartRank: (i % 10) + 1,
+  description: i % 4 === 3 ? null : `A demo description for ${s.name}: a short, spoiler-free summary of the premise, pulled from Wikipedia or TMDB in the live version.`, descriptionSource: "wikipedia", descriptionUrl: "https://en.wikipedia.org",
 }));
 
 function respondent(id: string, day: string, reachKey: "reach" | "prevReach", counts: Record<string, number>): RespondentRecord {

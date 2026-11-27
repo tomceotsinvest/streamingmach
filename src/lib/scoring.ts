@@ -36,7 +36,10 @@ export type RespondentRecord = {
   ratings: RatingRecord[];
 };
 
-export type TitleMeta = { id: string; name: string; kind: "tv" | "film"; chartRank: number | null };
+export type TitleMeta = {
+  id: string; name: string; kind: "tv" | "film"; chartRank: number | null;
+  description?: string | null; descriptionSource?: "tmdb" | "wikipedia" | null; descriptionUrl?: string | null;
+};
 
 export type TitleScore = TitleMeta & {
   status: "scored" | "early" | "too_new";

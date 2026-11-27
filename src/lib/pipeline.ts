@@ -1,6 +1,7 @@
 // The daily loop: chart → survey wave → Prolific → clean → weight → score → guardrails → publish.
 import { randomBytes } from "node:crypto";
 import { config, sql, ensureSchema } from "./db";
+import { fetchDescription } from "./describe";
 import { fetchUkChart, surveyTitleSet, ChartRow, titleFromRow, latestWeeks, CHART_LOOKBACK_WEEKS } from "./netflix";
 import { SURVEY_VERSION, decoyFor, RETIRED_DECOYS } from "./questionnaire";
 import { createAndPublishStudy, stopStudy, rewardPence, ukFilters, studyStatus, LIVE_STATUSES } from "./prolific";
@@ -190,12 +191,14 @@ export async function computeSnapshot(date: string, titleIds: string[], chartWee
   const prevFrom = addDays(from, -7);
   const [current, previous] = await Promise.all([loadRespondents(from, to), loadRespondents(prevFrom, from)]);
 
-  const meta = await db`select t.id, t.name, t.kind,
+  await ensureSchema().catch(() => {});
+  const meta = await db`select t.id, t.name, t.kind, t.description, t.description_source, t.description_url,
                           (select min(rank) from chart_entries c where c.title_id=t.id and c.chart_week=${chartWeek}) as chart_rank
                         from titles t where t.id = any(${titleIds})`;
   const order = new Map(titleIds.map((id, i) => [id, i]));
   const titles: TitleMeta[] = meta
-    .map((m) => ({ id: m.id, name: m.name, kind: m.kind, chartRank: m.chart_rank ?? null }))
+    .map((m) => ({ id: m.id, name: m.name, kind: m.kind, chartRank: m.chart_rank ?? null,
+      description: m.description ?? null, descriptionSource: m.description_source ?? null, descriptionUrl: m.description_url ?? null }))
     .sort((a, b) => order.get(a.id)! - order.get(b.id)!);
 
   const prev = await latestPublishedSnapshot();
@@ -205,6 +208,24 @@ export async function computeSnapshot(date: string, titleIds: string[], chartWee
     thresholds,
   });
   return { snapshot, prev };
+}
+
+/** Look up short descriptions for titles that don't have one (rechecks misses weekly). Bounded per call. */
+export async function fillDescriptions(titleIds: string[], limit = 25): Promise<{ found: number; missing: number }> {
+  const db = sql();
+  await ensureSchema();
+  const todo = await db`select id, kind, coalesce(show_title, name) as show from titles
+    where id = any(${titleIds}) and description is null
+      and (description_checked_at is null or description_checked_at < now() - interval '7 days')
+    limit ${limit}`;
+  let found = 0;
+  await Promise.all(todo.map(async (t) => {
+    const d = await fetchDescription(t.show, t.kind);
+    if (d) found++;
+    await db`update titles set description = ${d?.text ?? null}, description_source = ${d?.source ?? null},
+             description_url = ${d?.url ?? null}, description_checked_at = now() where id = ${t.id}`;
+  }));
+  return { found, missing: todo.length - found };
 }
 
 /** Latest wave's titles and chart week, for previews outside the daily run. */
@@ -243,6 +264,13 @@ export async function runDaily(date = londonDate()) {
     await alert(`Streaming Machine: Netflix chart feed failed — reusing week ${week}. ${(e as Error).message}`);
   }
   if (!titleIds.length) return { date, steps, stopped: "No titles available" };
+
+  try {
+    const d = await fillDescriptions(titleIds);
+    steps.push({ step: "descriptions", ok: true, detail: `${d.found} found, ${d.missing} not found` });
+  } catch (e) {
+    steps.push({ step: "descriptions", ok: false, detail: (e as Error).message });
+  }
 
   try {
     const w = await ensureWave(date, titleIds);

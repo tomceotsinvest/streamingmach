@@ -162,3 +162,6 @@ button { font: inherit; color: inherit; }
 .shell[data-theme="clean"] .bar span { background: var(--accent); }
 .shell[data-theme="clean"] .tabs button.on, .shell[data-theme="clean"] .genres button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .shell[data-theme="clean"] .hero h1 { font-size: 46px; }
+
+.drawer .desc { margin: 4px 0 16px; font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+.drawer .desc a { font-size: 13px; }
