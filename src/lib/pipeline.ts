@@ -1,7 +1,7 @@
 // The daily loop: chart → survey wave → Prolific → clean → weight → score → guardrails → publish.
 import { randomBytes } from "node:crypto";
 import { config, sql, ensureSchema } from "./db";
-import { fetchDescription } from "./describe";
+import { fetchDescription, DESCRIPTION_VERSION } from "./describe";
 import { fetchUkChart, surveyTitleSet, ChartRow, titleFromRow, latestWeeks, CHART_LOOKBACK_WEEKS } from "./netflix";
 import { SURVEY_VERSION, decoyFor, RETIRED_DECOYS } from "./questionnaire";
 import { createAndPublishStudy, stopStudy, rewardPence, ukFilters, studyStatus, LIVE_STATUSES } from "./prolific";
@@ -215,15 +215,15 @@ export async function fillDescriptions(titleIds: string[], limit = 25): Promise<
   const db = sql();
   await ensureSchema();
   const todo = await db`select id, kind, coalesce(show_title, name) as show from titles
-    where id = any(${titleIds}) and description is null
-      and (description_checked_at is null or description_checked_at < now() - interval '7 days')
+    where id = any(${titleIds}) and (coalesce(description_v, 0) < ${DESCRIPTION_VERSION}
+      or (description is null and description_checked_at < now() - interval '7 days'))
     limit ${limit}`;
   let found = 0;
   await Promise.all(todo.map(async (t) => {
     const d = await fetchDescription(t.show, t.kind);
     if (d) found++;
     await db`update titles set description = ${d?.text ?? null}, description_source = ${d?.source ?? null},
-             description_url = ${d?.url ?? null}, description_checked_at = now() where id = ${t.id}`;
+             description_url = ${d?.url ?? null}, description_checked_at = now(), description_v = ${DESCRIPTION_VERSION} where id = ${t.id}`;
   }));
   return { found, missing: todo.length - found };
 }

@@ -44,6 +44,7 @@ export function ensureSchema(): Promise<void> {
     await db`alter table titles add column if not exists description_source text`;
     await db`alter table titles add column if not exists description_url text`;
     await db`alter table titles add column if not exists description_checked_at timestamptz`;
+    await db`alter table titles add column if not exists description_v int`;
   })().catch((e) => { schemaReady = null; throw e; });
   return schemaReady;
 }

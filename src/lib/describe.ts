@@ -1,4 +1,5 @@
 // Short show descriptions. TMDB (plot overview) when TMDB_API_KEY is set, otherwise Wikipedia's page summary.
+export const DESCRIPTION_VERSION = 2; // bump to re-fetch every stored description after changing the rules
 export type Description = { text: string; source: "tmdb" | "wikipedia"; url: string };
 
 const UA = "streaming-machine/1.0 (https://streamingmach.vercel.app)";
@@ -46,7 +47,9 @@ async function fromWikipedia(show: string, kind: "tv" | "film"): Promise<Descrip
     const p = await getJson(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`);
     if (p.type === "disambiguation" || !p.extract) continue;
     const words = kind === "tv" ? TV_WORDS : FILM_WORDS;
-    if (!words.test(`${p.description ?? ""} ${p.extract.slice(0, 200)}`)) continue;
+    const firstSentence = p.extract.split(/(?<=[.!?])\s/)[0];
+    // Must read as a show/film in its opening sentence, and be a Netflix title (avoids same-name shows and people)
+    if (!words.test(`${p.description ?? ""} ${firstSentence}`) || !/netflix/i.test(p.extract)) continue;
     return { text: shorten(p.extract), source: "wikipedia", url: p.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}` };
   }
   return null;
