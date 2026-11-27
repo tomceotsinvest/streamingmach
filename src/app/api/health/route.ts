@@ -1,3 +1,4 @@
+import { RETIRED_DECOYS } from "@/lib/questionnaire";
 import { NextResponse } from "next/server";
 import { sql, dbUrl } from "@/lib/db";
 
@@ -39,7 +40,7 @@ export async function GET() {
                              join respondents r on r.id=g.respondent_id where r.completed_at > now() - interval '7 days'`;
     // Aggregate quality breakdown (counts only, no respondent-level data)
     const [q] = await db`with c as (
-        select r.id, r.duration_sec, r.attention_ok, r.decoy_claimed, r.straightliner, w.wave_date,
+        select r.id, r.duration_sec, r.attention_ok, (r.decoy_claimed and not coalesce(w.decoy = any(${RETIRED_DECOYS}), false)) as decoy_claimed, r.straightliner, w.wave_date,
           (select count(*) from ratings g where g.respondent_id=r.id) as dives
         from respondents r left join survey_waves w on w.id=r.wave_id
         where r.status='complete' and r.completed_at > now() - interval '7 days'),

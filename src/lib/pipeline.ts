@@ -2,7 +2,7 @@
 import { randomBytes } from "node:crypto";
 import { config, sql } from "./db";
 import { fetchUkChart, surveyTitleSet, ChartRow, titleFromRow, latestWeeks } from "./netflix";
-import { SURVEY_VERSION, decoyFor } from "./questionnaire";
+import { SURVEY_VERSION, decoyFor, RETIRED_DECOYS } from "./questionnaire";
 import { createAndPublishStudy, stopStudy, rewardPence, ukFilters, studyStatus, LIVE_STATUSES } from "./prolific";
 import { buildSnapshot, RespondentRecord, Snapshot, TitleMeta } from "./scoring";
 
@@ -131,7 +131,7 @@ export async function loadRespondents(fromIso: string, toIsoExclusive: string): 
   const rows = await db`
     select r.id, r.completed_at, coalesce(r.duration_sec,0) as duration_sec, r.age, r.region, r.gender, r.social_grade,
            coalesce(r.household,'{}') as household, coalesce(r.genres,'{}') as genres,
-           coalesce(r.attention_ok,false) as attention_ok, coalesce(r.decoy_claimed,false) as decoy_claimed,
+           coalesce(r.attention_ok,false) as attention_ok, coalesce(r.decoy_claimed,false) and not coalesce((select w.decoy from survey_waves w where w.id = r.wave_id) = any(${RETIRED_DECOYS}),false) as decoy_claimed,
            coalesce(r.straightliner,false) as straightliner,
            coalesce((select json_object_agg(v.title_id, json_build_object('status',v.status,'plan',v.plan_to_watch,'heardVia',v.heard_via))
                      from viewing v where v.respondent_id = r.id), '{}'::json) as viewing,

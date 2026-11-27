@@ -95,7 +95,11 @@ export const ATTENTION_CHECK = { prompt: 'To show you are reading, please select
   options: ["Never", "Rarely", "Sometimes", "Often", "Always"] } as const;
 
 // Fictional titles used as a decoy in A1. Anyone claiming to have watched one is flagged as an overclaimer.
-export const DECOYS = ["The Harbour Line", "Quiet Acre", "Northern Glass", "Saltmarsh", "The Ninth Ferry", "Copperfield Road"];
+// Each name was web-checked for no real show with the same or a near-identical title.
+export const DECOYS = ["The Pellworth Inquiry", "Brindle & Vane", "The Kestrel Accord", "Thistledown Bay"];
+// Decoys withdrawn because they turned out to resemble real shows; claims on them are not treated as overclaiming.
+// "Saltmarsh" is too close to Sky's Under Salt Marsh (Nov 2026).
+export const RETIRED_DECOYS = ["Saltmarsh"];
 export function decoyFor(dateISO: string): string {
   const d = Number(dateISO.replaceAll("-", ""));
   return DECOYS[d % DECOYS.length];
