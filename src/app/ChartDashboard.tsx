@@ -5,7 +5,8 @@ import type { Snapshot, TitleScore } from "@/lib/scoring";
 import { matchScores, profileIsSet, Profile } from "@/lib/match";
 import { parseQueryRules, rank, describe, Filters, Ranked } from "@/lib/search";
 import { ATTRIBUTES, OCCASIONS, OccasionKey } from "@/lib/questionnaire";
-import { Tune, Drawer, PROFILE_KEY } from "./Dashboard";
+import { Drawer, PROFILE_KEY } from "./Dashboard";
+import { LikeMe } from "./LikeMe";
 import "./chart.css";
 
 const MOODS: { key: OccasionKey; label: string; query: string }[] = [
@@ -26,22 +27,26 @@ function segmentLabel(s: string) { return s.replace(/^Age /, "viewers aged ").re
 
 export default function ChartDashboard({ snap, brand }: { snap: Snapshot; brand: string }) {
   const [profile, setProfile] = useState<Profile>({});
-  const [tuning, setTuning] = useState(false);
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<Filters | null>(null);
   const [searching, setSearching] = useState(false);
   const [open, setOpen] = useState<TitleScore | null>(null);
 
   useEffect(() => { try { const p = localStorage.getItem(PROFILE_KEY); if (p) setProfile(JSON.parse(p)); } catch {} }, []);
-  const saveProfile = (p: Profile) => { setTuning(true); setProfile(p); try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch {} };
+  const saveProfile = (p: Profile) => { setProfile(p); try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch {} };
 
   const scored = useMemo(() => snap.titles.filter((t) => t.viewerScore != null), [snap]);
-  const top = useMemo(() => [...scored].sort((a, b) => b.viewerScore! - a.viewerScore!), [scored]);
-  const hero = top[0];
   const climbers = useMemo(() => [...snap.titles].sort((a, b) => b.momentum - a.momentum).slice(0, 5), [snap]);
   const mine = profileIsSet(profile);
   const matches = useMemo(() => (mine ? matchScores(snap, profile) : undefined), [snap, profile, mine]);
-  const forYou = useMemo(() => (matches ? [...scored].sort((a, b) => (matches.get(b.id)?.matchScore ?? 0) - (matches.get(a.id)?.matchScore ?? 0)).slice(0, 5) : []), [scored, matches]);
+  // Everything below the filter ranks by the personal score once a profile is set
+  const scoreOf = (t: TitleScore) => matches?.get(t.id)?.matchScore ?? t.viewerScore!;
+  const top = useMemo(() => [...scored].sort((a, b) => scoreOf(b) - scoreOf(a)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scored, matches]);
+  const hero = top[0];
+  const heroMatch = hero ? matches?.get(hero.id) : undefined;
+  const lift = (t: TitleScore) => matches?.get(t.id)?.lift ?? 0;
   const moods = useMemo(() => MOODS.map((m) => {
     const fits = scored.filter((t) => (t.occasions[m.key] ?? 0) >= 0.25).sort((a, b) => b.viewerScore! - a.viewerScore!);
     return { ...m, pick: fits[0], more: Math.max(0, fits.length - 1) };
@@ -84,6 +89,8 @@ export default function ChartDashboard({ snap, brand }: { snap: Snapshot; brand:
           <p className="c-lede">The UK's viewer-rated chart. What people actually thought of this week's Netflix series, not what the algorithm is pushing.</p>
         </div>
 
+        <LikeMe profile={profile} onChange={saveProfile} matched={heroMatch?.matchedRaters} />
+
         <form className="c-search" role="search" onSubmit={(e) => { e.preventDefault(); runSearch(query); }}>
           <label htmlFor="mood">Ask the chart</label>
           <input id="mood" type="search" placeholder={EXAMPLES[0]} value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -122,12 +129,14 @@ export default function ChartDashboard({ snap, brand }: { snap: Snapshot; brand:
         <section className="c-hero">
           {hero && (
             <div className="c-hero-main">
-              <p className="c-kicker">No. 1 this week</p>
+              <p className="c-kicker">{mine ? "No. 1 for people like you" : "No. 1 this week"}</p>
               <div className="c-hero-row">
-                <button type="button" className="c-giant" onClick={() => setOpen(hero)} aria-label={`${hero.name}, Viewer Score ${Math.round(hero.viewerScore!)}`}>{Math.round(hero.viewerScore!)}</button>
+                <button type="button" className="c-giant" onClick={() => setOpen(hero)} aria-label={`${hero.name}, ${mine ? "score for people like you" : "Viewer Score"} ${Math.round(scoreOf(hero))}`}>{Math.round(scoreOf(hero))}</button>
                 <div className="c-hero-text">
                   <h2 className="c-hero-title"><button type="button" onClick={() => setOpen(hero)}>{hero.name}</button></h2>
                   <p className="c-body">{kindLabel(hero)} · {hero.raters.toLocaleString("en-GB")} ratings</p>
+                  {heroMatch && <p className={`c-lift ${heroMatch.lift >= 1 ? "up" : heroMatch.lift <= -1 ? "down" : ""}`}>
+                    {Math.abs(heroMatch.lift) >= 1 ? `${heroMatch.lift > 0 ? "▲" : "▼"} ${Math.abs(Math.round(heroMatch.lift))} vs everyone` : "Same as everyone"} · Viewer Score {Math.round(hero.viewerScore!)}</p>}
                   {hero.description && <p className="c-desc c-desc-hero">{hero.description}</p>}
                   <div className="c-tags">{hero.tags.map((k) => <span key={k}>{ATTRIBUTES[k]}</span>)}</div>
                 </div>
@@ -164,12 +173,12 @@ export default function ChartDashboard({ snap, brand }: { snap: Snapshot; brand:
 
         <section className="c-section">
           <div className="c-head">
-            <h2 className="c-h1">The Top {Math.min(20, top.length)}</h2>
-            <p className="c-muted c-narrow">Viewer Score out of 100: how much people rated it, and how strongly they'd recommend it.</p>
+            <h2 className="c-h1">{mine ? "Your" : "The"} Top {Math.min(20, top.length)}</h2>
+            <p className="c-muted c-narrow">{mine ? "Re-ranked by how viewers like you scored each show, out of 100." : "Viewer Score out of 100: how much people rated it, and how strongly they'd recommend it."}</p>
           </div>
           <div className="c-table-wrap">
             <table className="c-table">
-              <thead><tr><th scope="col">Rank</th><th scope="col">Series</th><th scope="col">Viewers say</th><th scope="col">Ratings</th><th scope="col" className="r">Score</th></tr></thead>
+              <thead><tr><th scope="col">Rank</th><th scope="col">Series</th><th scope="col">Viewers say</th>{mine ? <th scope="col" className="r">vs everyone</th> : <th scope="col">Ratings</th>}<th scope="col" className="r">{mine ? "For you" : "Score"}</th></tr></thead>
               <tbody>
                 {top.slice(0, 20).map((t, i) => (
                   <tr key={t.id}>
@@ -177,9 +186,11 @@ export default function ChartDashboard({ snap, brand }: { snap: Snapshot; brand:
                     <td><button type="button" className="c-tname" onClick={() => setOpen(t)}>{t.name}</button><div className="c-muted c-small">{kindLabel(t)}</div>
                       {t.description && <p className="c-desc">{t.description}</p>}</td>
                     <td className="c-tags-cell">{tags(t) || "–"}</td>
-                    <td className="c-body">{t.raters.toLocaleString("en-GB")}</td>
+                    {mine
+                      ? <td className={`r c-lift ${lift(t) >= 1 ? "up" : lift(t) <= -1 ? "down" : ""}`}>{Math.abs(lift(t)) >= 1 ? `${lift(t) > 0 ? "▲" : "▼"} ${Math.abs(Math.round(lift(t)))}` : "="}</td>
+                      : <td className="c-body">{t.raters.toLocaleString("en-GB")}</td>}
                     <td className="r">
-                      <span className={`c-score ${scoreTone(t.viewerScore!)}`}>{Math.round(t.viewerScore!)}</span>
+                      <span className={`c-score ${scoreTone(scoreOf(t))}`}>{Math.round(scoreOf(t))}</span>
                       {t.status === "early" && <div className="c-early">Early score</div>}
                     </td>
                   </tr>
@@ -201,36 +212,6 @@ export default function ChartDashboard({ snap, brand }: { snap: Snapshot; brand:
                 </span>
               </button>
             ))}
-          </div>
-        </section>
-
-        <section className="c-you">
-          <div className="c-you-intro">
-            <h2 className="c-h1">For people<br />like you</h2>
-            <p>Re-ranks the chart using viewers who match you. Saved on this device only, no account needed.</p>
-            {mine && !tuning && <button type="button" className="c-ghost" onClick={() => setTuning(true)}>Edit my profile</button>}
-          </div>
-          <div className="c-you-body">
-            {(!mine || tuning) && <Tune profile={profile} onChange={saveProfile} onDone={() => setTuning(false)} compact={mine} />}
-            {mine && !tuning && (
-              <ol className="c-list">
-                {forYou.map((t, i) => {
-                  const m = matches!.get(t.id)!;
-                  return (
-                    <li key={t.id}>
-                      <button type="button" className="c-you-row" onClick={() => setOpen(t)}>
-                        <span className="c-rank">{i + 1}</span>
-                        <span className="c-row-main">
-                          <span className="c-row-name">{t.name}</span>
-                          <span className="c-you-why">{Math.abs(m.lift) >= 1 ? `${m.lift > 0 ? "+" : ""}${Math.round(m.lift)} vs everyone` : "Same as everyone"} · from ~{m.matchedRaters} similar viewers</span>
-                        </span>
-                        <span className="c-you-score">{Math.round(m.matchScore)}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ol>
-            )}
           </div>
         </section>
 

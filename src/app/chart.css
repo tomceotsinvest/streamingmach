@@ -150,3 +150,39 @@
   .c-examples button { height: auto; padding: 8px 12px; text-align: left; white-space: normal; }
   .chart { overflow-x: hidden; }
 }
+
+/* "Best for …" sentence filter (top of page) */
+.lm { border-top: 2px solid var(--c-rule); border-bottom: 2px solid var(--c-rule); padding: 24px 0; }
+.lm-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px; }
+.lm-sentence { flex: 1 1 720px; margin: 0; font-size: 34px; line-height: 1.5; font-weight: 500; font-stretch: 92%; }
+.lm-pick { position: relative; display: inline-block; padding: 0 6px; border-bottom: 3px solid var(--c-rule); color: var(--c-muted); cursor: pointer; white-space: nowrap; }
+.lm-pick::after { content: "▾"; margin-left: 4px; font-size: .5em; vertical-align: middle; }
+.lm-pick.set { background: var(--c-m0); color: var(--c-ink); border-bottom-color: var(--c-accent); }
+.lm-pick select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+.lm-pick:focus-within { outline: 3px solid var(--c-accent); outline-offset: 2px; }
+.chart .lm-btn { font: inherit; font-size: inherit; line-height: inherit; border: 0; border-bottom: 3px solid var(--c-rule); background: none; color: var(--c-muted); white-space: normal; text-align: left; }
+.chart .lm-btn.set { background: var(--c-m0); color: var(--c-ink); border-bottom-color: var(--c-accent); }
+.lm-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.chart .lm-more { min-height: 44px; padding: 0 18px; border: 1.5px solid var(--c-ink); background: transparent; font-size: 14px; font-weight: 700; cursor: pointer; }
+.chart .lm-more[aria-expanded="true"] { background: var(--c-ink); color: var(--c-bg); }
+.lm-note { font-size: 13px; color: var(--c-muted); text-align: right; }
+.chart .lm-clear { border: 0; background: none; padding: 0; font-size: 13px; color: var(--c-accent); text-decoration: underline; cursor: pointer; }
+.lm-panel { display: flex; flex-direction: column; gap: 20px; margin-top: 20px; padding: 24px; background: var(--c-panel); color: var(--c-panel-ink); }
+.lm-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--c-panel-muted); }
+.lm-label small { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.lm-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chart .lm-chips button { min-height: 40px; padding: 0 14px; border: 1px solid var(--c-panel-rule); background: transparent; color: var(--c-panel-ink); font-size: 14px; font-weight: 600; border-radius: 999px; cursor: pointer; }
+.chart .lm-chips button.on { background: var(--c-panel-ink); color: var(--c-panel); border-color: var(--c-panel-ink); }
+.lm-selects { display: flex; flex-wrap: wrap; gap: 16px; }
+.lm-selects label { flex: 1 1 240px; }
+.lm-selects select { width: 100%; min-height: 44px; padding: 0 10px; background: #2D1F40; color: var(--c-panel-ink); border: 1px solid var(--c-panel-rule); font-size: 15px; }
+.c-lift { font-size: 15px; font-weight: 700; color: var(--c-muted); white-space: nowrap; }
+.c-hero-text .c-lift { margin: 6px 0 12px; }
+.c-lift.up { color: var(--c-good); }
+.c-lift.down { color: var(--c-low); }
+@media (max-width: 760px) {
+  .lm-sentence { font-size: 24px; line-height: 1.6; }
+  .lm-side { align-items: flex-start; }
+  .lm-note { text-align: left; }
+  .lm-panel { padding: 18px; }
+}

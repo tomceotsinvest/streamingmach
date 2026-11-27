@@ -182,7 +182,7 @@ function Row({ t, n, shown, why, match, onOpen }: { t: TitleScore; n: number; sh
   );
 }
 
-const TASTE_LABELS: Record<AttitudeKey, string> = {
+export const TASTE_LABELS: Record<AttitudeKey, string> = {
   british: "I prefer British shows", subtitles: "Happy with subtitles", short: "I like short series",
   noViolence: "I avoid graphic violence", recs: "I watch what others recommend", finisher: "I finish what I start",
 };
