@@ -1,5 +1,7 @@
 // Short show descriptions. TMDB (plot overview) when TMDB_API_KEY is set, otherwise Wikipedia's page summary.
-export const DESCRIPTION_VERSION = 2; // bump to re-fetch every stored description after changing the rules
+// Bump to re-fetch every stored description after changing the rules. Adding a TMDB key also triggers one re-fetch.
+export const DESCRIPTION_VERSION = 2;
+export const descriptionVersion = () => DESCRIPTION_VERSION * 10 + (process.env.TMDB_API_KEY ? 1 : 0);
 export type Description = { text: string; source: "tmdb" | "wikipedia"; url: string };
 
 const UA = "streaming-machine/1.0 (https://streamingmach.vercel.app)";
