@@ -3,7 +3,7 @@
 // npm run demo  → writes public/demo-snapshot.json
 import { writeFileSync } from "node:fs";
 import { buildSnapshot, RespondentRecord, TitleMeta, RatingRecord } from "../src/lib/scoring";
-import { ATTRIBUTE_KEYS, AttributeKey, OCCASION_KEYS, OccasionKey, REGIONS, GENRES, ViewStatus } from "../src/lib/questionnaire";
+import { ATTRIBUTE_KEYS, AttributeKey, OCCASION_KEYS, OccasionKey, REGIONS, GENRES, ViewStatus, ATTITUDE_KEYS } from "../src/lib/questionnaire";
 import { allocateDeepDives } from "../src/lib/allocation";
 
 let seed = 42;
@@ -75,8 +75,10 @@ function respondent(id: string, day: string, reachKey: "reach" | "prevReach", co
     id, completedAt: `${day}T${String(8 + Math.floor(rnd() * 14)).padStart(2, "0")}:00:00Z`, durationSec: Math.round(420 + norm() * 120),
     age, region: rnd() < .2 ? "London" : rnd() < .2 ? "South East" : pick(REGIONS), gender,
     grade: gr < .3 ? "AB" : gr < .65 ? "C1" : gr < .85 ? "C2" : "DE",
-    household: [rnd() < .6 ? "Partner" : "Alone", ...(kids ? ["Children under 16"] : [])],
+    household: [rnd() < .55 ? "Partner" : rnd() < .5 ? "Housemates" : "Alone", ...(kids ? ["Children under 16"] : [])],
     genres: [...new Set([pick(GENRES), pick(GENRES), pick(GENRES)])],
+    hours: pick(["Under 2", "2–5", "6–10", "11–20", "Over 20"]),
+    attitudes: Object.fromEntries(ATTITUDE_KEYS.map((k) => [k, 1 + Math.floor(rnd() * 5)])),
     attentionOk: rnd() > .03, decoyClaimed: rnd() < .04, straightliner: rnd() < .02,
     viewing, ratings,
   };

@@ -130,7 +130,7 @@ export async function loadRespondents(fromIso: string, toIsoExclusive: string): 
   const db = sql();
   const rows = await db`
     select r.id, r.completed_at, coalesce(r.duration_sec,0) as duration_sec, r.age, r.region, r.gender, r.social_grade,
-           coalesce(r.household,'{}') as household, coalesce(r.genres,'{}') as genres,
+           coalesce(r.household,'{}') as household, coalesce(r.genres,'{}') as genres, r.hours, r.attitudes,
            coalesce(r.attention_ok,false) as attention_ok, coalesce(r.decoy_claimed,false) and not coalesce((select w.decoy from survey_waves w where w.id = r.wave_id) = any(${RETIRED_DECOYS}),false) as decoy_claimed,
            coalesce(r.straightliner,false) as straightliner,
            coalesce((select json_object_agg(v.title_id, json_build_object('status',v.status,'plan',v.plan_to_watch,'heardVia',v.heard_via))
@@ -142,7 +142,7 @@ export async function loadRespondents(fromIso: string, toIsoExclusive: string): 
     where r.status = 'complete' and r.completed_at >= ${fromIso} and r.completed_at < ${toIsoExclusive}`;
   return rows.map((r) => ({
     id: r.id, completedAt: new Date(r.completed_at).toISOString(), durationSec: Number(r.duration_sec), age: Number(r.age),
-    region: r.region, gender: r.gender, grade: r.social_grade, household: r.household, genres: r.genres,
+    region: r.region, gender: r.gender, grade: r.social_grade, household: r.household, genres: r.genres, hours: r.hours ?? null, attitudes: r.attitudes ?? null,
     attentionOk: r.attention_ok, decoyClaimed: r.decoy_claimed, straightliner: r.straightliner,
     viewing: r.viewing, ratings: r.ratings,
   }));

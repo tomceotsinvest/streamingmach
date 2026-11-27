@@ -71,6 +71,12 @@
 .c-hero-text .c-body { margin: 0 0 16px; font-size: 17px; }
 .c-tags { display: flex; flex-wrap: wrap; gap: 8px; }
 .c-tags span { border: 1.5px solid var(--c-rule); padding: 6px 12px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.c-stats { display: flex; flex-wrap: wrap; gap: 0; margin: 32px 0 0; border-top: 1px solid var(--c-rule); }
+.c-stats > div { flex: 1 1 160px; padding: 16px 24px 0 0; }
+.c-stats > div + div { padding-left: 24px; border-left: 1px solid var(--c-rule); }
+.c-stats dt { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
+.c-stats dd { margin: 4px 0 0; font-family: var(--c-display); font-size: 48px; line-height: 1; font-weight: 800; font-stretch: 75%; color: var(--c-ink); }
+.c-stats dd small { font-size: 20px; font-weight: 700; color: var(--c-muted); margin-left: 2px; }
 .c-hero-note { margin: 28px 0 0; max-width: 620px; font-size: 19px; }
 .c-climb { flex: 1 1 340px; min-width: 0; padding: 40px 0 40px 40px; box-sizing: border-box; }
 .c-climb .c-muted { margin: 0 0 20px; font-size: 14px; }
@@ -125,6 +131,11 @@
 .chart .drawer h2 { font-family: var(--c-display); font-weight: 800; font-stretch: 75%; text-transform: uppercase; }
 
 @media (max-width: 760px) {
+  .c-stats > div { flex: 1 1 0; min-width: 0; padding: 12px 8px 0 0; }
+  .c-stats > div + div { padding-left: 10px; }
+  .c-stats dt { font-size: 11px; letter-spacing: .03em; }
+  .c-stats dd { font-size: 32px; }
+  .c-stats dd small { font-size: 14px; }
   .c-wrap { padding: 0 16px 64px; }
   .c-hero-main { border-right: 0; padding-right: 0; }
   .c-climb { padding-left: 0; padding-top: 0; }

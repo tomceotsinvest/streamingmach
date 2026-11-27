@@ -90,6 +90,38 @@ export const ATTITUDES = {
   finisher: "I finish what I start",
 } as const;
 export type AttitudeKey = keyof typeof ATTITUDES;
+export const ATTITUDE_KEYS = Object.keys(ATTITUDES) as AttitudeKey[];
+
+// Coarser groups used to match visitors to raters in "For people like you"
+export const AREA_GROUPS = ["London", "South & East", "Midlands", "North", "Scotland, Wales & NI"] as const;
+export function areaGroup(region: string | null | undefined): number {
+  switch (region) {
+    case "London": return 0;
+    case "South East": case "South West": case "East of England": return 1;
+    case "East Midlands": case "West Midlands": return 2;
+    case "North East": case "North West": case "Yorkshire and the Humber": return 3;
+    case "Scotland": case "Wales": case "Northern Ireland": return 4;
+    default: return -1;
+  }
+}
+export const LIVES_WITH = ["On my own", "With a partner", "With housemates or family"] as const;
+export function livesWith(household: string[]): number {
+  if (household.includes("Partner")) return 1;
+  if (household.some((h) => h === "Housemates" || h === "Parents" || h === "Children 16+")) return 2;
+  if (household.includes("Alone")) return 0;
+  return -1;
+}
+export const TV_DIET = ["Light (under 2 hrs a week)", "Regular (2–10 hrs)", "Heavy (over 10 hrs)"] as const;
+export function tvDiet(hours: string | null | undefined): number {
+  if (hours == null) return -1;
+  if (hours === "0" || hours === "Under 2") return 0;
+  if (hours === "2–5" || hours === "6–10") return 1;
+  return 2;
+}
+export function attitudeMask(att: Record<string, number> | null | undefined): number {
+  if (!att) return 0;
+  return ATTITUDE_KEYS.reduce((m, k, i) => ((att[k] ?? 0) >= 4 ? m | (1 << i) : m), 0);
+}
 
 export const ATTENTION_CHECK = { prompt: 'To show you are reading, please select "Sometimes".', answer: "Sometimes",
   options: ["Never", "Rarely", "Sometimes", "Often", "Always"] } as const;

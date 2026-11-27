@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Snapshot, TitleScore } from "@/lib/scoring";
 import { matchScores, profileIsSet, Profile, Match } from "@/lib/match";
 import { parseQueryRules, rank, describe, Filters, Ranked } from "@/lib/search";
-import { ATTRIBUTES, ATTRIBUTE_KEYS, AttributeKey, OCCASIONS, OCCASION_KEYS, AGE_BANDS, GENRES } from "@/lib/questionnaire";
+import { ATTRIBUTES, ATTRIBUTE_KEYS, AttributeKey, OCCASIONS, OCCASION_KEYS, AGE_BANDS, GENRES, AREA_GROUPS, LIVES_WITH, TV_DIET, ATTITUDE_KEYS, AttitudeKey } from "@/lib/questionnaire";
 
 const CATEGORIES: { key: string; label: string; filter: (t: TitleScore) => boolean }[] = [
   { key: "tv", label: "Series", filter: (t) => t.kind === "tv" },
@@ -182,10 +182,19 @@ function Row({ t, n, shown, why, match, onOpen }: { t: TitleScore; n: number; sh
   );
 }
 
+const TASTE_LABELS: Record<AttitudeKey, string> = {
+  british: "I prefer British shows", subtitles: "Happy with subtitles", short: "I like short series",
+  noViolence: "I avoid graphic violence", recs: "I watch what others recommend", finisher: "I finish what I start",
+};
+
 export function Tune({ profile, onChange, onDone, compact }: { profile: Profile; onChange: (p: Profile) => void; onDone: () => void; compact: boolean }) {
   const toggleGenre = (g: string) => {
     const gs = profile.genres ?? [];
     onChange({ ...profile, genres: gs.includes(g) ? gs.filter((x) => x !== g) : gs.length >= 3 ? gs : [...gs, g] });
+  };
+  const toggleTaste = (k: AttitudeKey) => {
+    const ts = profile.tastes ?? [];
+    onChange({ ...profile, tastes: ts.includes(k) ? ts.filter((x) => x !== k) : [...ts, k] });
   };
   return (
     <div className="tune">
@@ -196,8 +205,17 @@ export function Tune({ profile, onChange, onDone, compact }: { profile: Profile;
         <option value="">—</option><option>Woman</option><option>Man</option></select></label>
       <label>Kids at home<select value={profile.kids == null ? "" : profile.kids ? "y" : "n"} onChange={(e) => onChange({ ...profile, kids: e.target.value === "" ? undefined : e.target.value === "y" })}>
         <option value="">—</option><option value="y">Yes</option><option value="n">No</option></select></label>
+      <label>Where I live<select value={profile.area ?? ""} onChange={(e) => onChange({ ...profile, area: e.target.value === "" ? undefined : Number(e.target.value) })}>
+        <option value="">—</option>{AREA_GROUPS.map((a, i) => <option key={a} value={i}>{a}</option>)}</select></label>
+      <label>I live<select value={profile.livesWith ?? ""} onChange={(e) => onChange({ ...profile, livesWith: e.target.value === "" ? undefined : Number(e.target.value) })}>
+        <option value="">—</option>{LIVES_WITH.map((a, i) => <option key={a} value={i}>{a}</option>)}</select></label>
+      <label>How much I watch<select value={profile.tvDiet ?? ""} onChange={(e) => onChange({ ...profile, tvDiet: e.target.value === "" ? undefined : Number(e.target.value) })}>
+        <option value="">—</option>{TV_DIET.map((a, i) => <option key={a} value={i}>{a}</option>)}</select></label>
       <div className="genres"><span>Favourite genres (up to 3)</span>
         <div>{GENRES.map((g) => <button key={g} className={(profile.genres ?? []).includes(g) ? "on" : ""} onClick={() => toggleGenre(g)}>{g}</button>)}</div>
+      </div>
+      <div className="genres"><span>Sounds like me</span>
+        <div>{ATTITUDE_KEYS.map((k) => <button key={k} className={(profile.tastes ?? []).includes(k) ? "on" : ""} onClick={() => toggleTaste(k)}>{TASTE_LABELS[k]}</button>)}</div>
       </div>
       <div className="tune-actions">
         {profileIsSet(profile) && <button className="primary" onClick={onDone}>Show my picks</button>}

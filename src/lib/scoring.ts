@@ -1,6 +1,7 @@
 // Turns cleaned, weighted survey responses into the daily dataset the dashboard reads.
 import {
   ATTRIBUTE_KEYS, AttributeKey, OCCASION_KEYS, OccasionKey, ViewStatus, WATCHED, ageBand, AGE_BANDS, GENRES,
+  areaGroup, livesWith, tvDiet, attitudeMask,
 } from "./questionnaire";
 import { rake, gradeGroup, Targets, UK_ADULT_TARGETS, NETFLIX_SUBSCRIBER_TARGETS } from "./weighting";
 
@@ -26,6 +27,8 @@ export type RespondentRecord = {
   grade: string | null;  // AB | C1 | C2 | DE
   household: string[];
   genres: string[];
+  hours?: string | null;
+  attitudes?: Record<string, number> | null;
   attentionOk: boolean;
   decoyClaimed: boolean;
   straightliner: boolean;
@@ -61,8 +64,9 @@ export type TitleScore = TitleMeta & {
 };
 
 // Compact per-rating rows so "people like me" can be computed in the browser without any personal data.
-// [titleIndex, compositeScore 0-100, weight, ageBandIdx, genderIdx(0 man,1 woman,2 other/na), hasKids(0|1), genreBitmask]
-export type RaterRow = [number, number, number, number, number, number, number];
+// [titleIndex, compositeScore 0-100, weight, ageBandIdx, genderIdx(0 man,1 woman,2 other/na), hasKids(0|1), genreBitmask,
+//  areaGroup(-1 n/a), livesWith(-1 n/a), tvDiet(-1 n/a), attitudeAgreeBitmask]. Older snapshots have only the first 7.
+export type RaterRow = [number, number, number, number, number, number, number, ...number[]];
 
 export type Snapshot = {
   version: 1;
@@ -206,6 +210,7 @@ export function buildSnapshot(args: {
       raters.push([
         titleIndex.get(rt.titleId)!, Math.round(c * 10) / 10, Math.round(w * 1000) / 1000,
         AGE_BANDS.indexOf(band), genderIdx(r.gender), r.household.includes("Children under 16") ? 1 : 0, genreMask(r.genres),
+        areaGroup(r.region), livesWith(r.household), tvDiet(r.hours), attitudeMask(r.attitudes),
       ]);
     }
   }

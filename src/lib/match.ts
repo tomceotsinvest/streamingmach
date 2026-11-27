@@ -1,6 +1,6 @@
 // "Shows for people like me": re-weights every rating by how similar the rater is to the visitor,
 // then shrinks toward the overall score when the matched base is thin. Runs in the browser — no login, no PII.
-import { AGE_BANDS, GENRES } from "./questionnaire";
+import { AGE_BANDS, GENRES, ATTITUDE_KEYS, AttitudeKey } from "./questionnaire";
 import type { Snapshot, TitleScore } from "./scoring";
 import { genreMask } from "./scoring";
 
@@ -9,14 +9,18 @@ export type Profile = {
   gender?: "Man" | "Woman";
   kids?: boolean;
   genres?: string[];
+  area?: number;       // AREA_GROUPS index
+  livesWith?: number;  // LIVES_WITH index
+  tvDiet?: number;     // TV_DIET index
+  tastes?: AttitudeKey[];
 };
 
 export const SHRINK_K = 30; // pseudo-raters at the overall score
 
 function popcount(x: number) { let c = 0; while (x) { x &= x - 1; c++; } return c; }
 
-export function similarity(row: [number, number, number, number, number, number, number], p: Profile): number {
-  const [, , , age, gender, kids, gmask] = row;
+export function similarity(row: readonly number[], p: Profile): number {
+  const [, , , age, gender, kids, gmask, area = -1, lives = -1, diet = -1, amask = -1] = row;
   let s = 1;
   if (p.ageBand) {
     const d = Math.abs(AGE_BANDS.indexOf(p.ageBand) - age);
@@ -29,6 +33,14 @@ export function similarity(row: [number, number, number, number, number, number,
     const union = popcount(pm | gmask);
     const jac = union ? popcount(pm & gmask) / union : 0;
     s *= 0.4 + 0.6 * jac;
+  }
+  // Newer fields: unknown (-1, or missing in older snapshots) counts as neutral
+  if (p.area != null && area >= 0) s *= area === p.area ? 1 : 0.7;
+  if (p.livesWith != null && lives >= 0) s *= lives === p.livesWith ? 1 : 0.6;
+  if (p.tvDiet != null && diet >= 0) { const d = Math.abs(diet - p.tvDiet); s *= d === 0 ? 1 : d === 1 ? 0.6 : 0.3; }
+  if (p.tastes?.length && amask >= 0) {
+    const hit = p.tastes.filter((k) => amask & (1 << ATTITUDE_KEYS.indexOf(k))).length;
+    s *= 0.35 + 0.65 * (hit / p.tastes.length);
   }
   return s;
 }
@@ -56,7 +68,7 @@ export function matchScores(snap: Snapshot, p: Profile): Map<string, Match> {
 }
 
 export function profileIsSet(p: Profile) {
-  return !!(p.ageBand || p.gender || p.kids != null || p.genres?.length);
+  return !!(p.ageBand || p.gender || p.kids != null || p.genres?.length || p.area != null || p.livesWith != null || p.tvDiet != null || p.tastes?.length);
 }
 
 export const _genres = GENRES;

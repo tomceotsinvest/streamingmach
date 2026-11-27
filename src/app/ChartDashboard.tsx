@@ -131,10 +131,15 @@ export default function ChartDashboard({ snap, brand }: { snap: Snapshot; brand:
                   <div className="c-tags">{hero.tags.map((k) => <span key={k}>{ATTRIBUTES[k]}</span>)}</div>
                 </div>
               </div>
+              <dl className="c-stats">
+                <div><dt>Average rating</dt><dd>{hero.avgRating != null ? hero.avgRating.toFixed(1) : "–"}<small>/10</small></dd></div>
+                <div><dt>Net recommend</dt><dd>{hero.netRecommend != null ? (hero.netRecommend > 0 ? "+" : "") + Math.round(hero.netRecommend) : "–"}</dd></div>
+                <div><dt>Stick with it</dt><dd>{hero.completion != null ? Math.round(hero.completion * 100) : "–"}<small>%</small></dd></div>
+              </dl>
               {(hero.lovedBy || hero.kidSafe != null) && (
                 <p className="c-hero-note">
                   {hero.lovedBy && <>Rated highest by {segmentLabel(hero.lovedBy.segment)}. </>}
-                  {hero.kidSafe != null && <>{Math.round(hero.kidSafe * 100)}% say it's fine to watch with under-12s.</>}
+                  {hero.kidSafe != null && (hero.kidSafe < 0.05 ? <>Viewers say it's not one for under-12s.</> : <>{Math.round(hero.kidSafe * 100)}% say it's fine to watch with under-12s.</>)}
                 </p>
               )}
             </div>
