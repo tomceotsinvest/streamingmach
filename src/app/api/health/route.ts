@@ -37,7 +37,35 @@ export async function GET() {
       from respondents where completed_at > now() - interval '7 days'`;
     const [rated] = await db`select count(*)::int as ratings, count(distinct title_id)::int as titles_rated from ratings g
                              join respondents r on r.id=g.respondent_id where r.completed_at > now() - interval '7 days'`;
-    return NextResponse.json({ ok: true, db: shape, tables: tables.map((t) => t.table_name), waves, last7days: { ...resp, ...rated } });
+    // Aggregate quality breakdown (counts only, no respondent-level data)
+    const [q] = await db`with c as (
+        select r.id, r.duration_sec, r.attention_ok, r.decoy_claimed, r.straightliner, w.wave_date,
+          (select count(*) from ratings g where g.respondent_id=r.id) as dives
+        from respondents r left join survey_waves w on w.id=r.wave_id
+        where r.status='complete' and r.completed_at > now() - interval '7 days'),
+      m as (select percentile_cont(0.5) within group (order by duration_sec) as med from c),
+      f as (select c.*, (c.duration_sec < m.med*0.4) as speeder from c, m)
+      select count(*)::int as n,
+        count(*) filter (where not attention_ok)::int as attention_fail,
+        count(*) filter (where decoy_claimed)::int as decoy,
+        count(*) filter (where straightliner)::int as straightline,
+        count(*) filter (where speeder)::int as speeder,
+        count(*) filter (where decoy_claimed or not attention_ok or straightliner or speeder)::int as any_flag,
+        count(*) filter (where not attention_ok and not decoy_claimed and not straightliner and not speeder)::int as only_attention,
+        count(*) filter (where decoy_claimed and attention_ok and not straightliner and not speeder)::int as only_decoy,
+        count(*) filter (where straightliner and attention_ok and not decoy_claimed and not speeder)::int as only_straightline,
+        count(*) filter (where speeder and attention_ok and not decoy_claimed and not straightliner)::int as only_speeder,
+        count(*) filter (where straightliner and dives=1)::int as straightline_1_dive,
+        count(*) filter (where straightliner and dives>=2)::int as straightline_2plus,
+        (select round(med) from m) as median_sec,
+        count(*) filter (where duration_sec < 120)::int as under_2min,
+        count(*) filter (where duration_sec between 120 and 179)::int as d2_3min,
+        (select json_object_agg(wave_date, k) from (select wave_date::text, count(*) filter (where decoy_claimed)::int as k from f group by 1) x) as decoy_by_wave
+      from f`;
+    const flatVals = await db`select a.v as value, count(*)::int as n from ratings g join respondents r on r.id=g.respondent_id,
+        lateral (select distinct value::text as v from jsonb_each(g.attributes)) a
+      where r.straightliner and r.completed_at > now() - interval '7 days' group by 1 order by 1`;
+    return NextResponse.json({ ok: true, db: shape, tables: tables.map((t) => t.table_name), waves, last7days: { ...resp, ...rated }, quality: { ...q, straightline_values: flatVals } });
   } catch (e) {
     const err = e as { code?: string; message?: string };
     const msg = (err.message ?? "").replace(/postgres(ql)?:\/\/[^\s]+/g, "[url]");
