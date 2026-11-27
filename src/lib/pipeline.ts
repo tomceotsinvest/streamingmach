@@ -1,6 +1,6 @@
 // The daily loop: chart → survey wave → Prolific → clean → weight → score → guardrails → publish.
 import { randomBytes } from "node:crypto";
-import { config, sql } from "./db";
+import { config, sql, ensureSchema } from "./db";
 import { fetchUkChart, surveyTitleSet, ChartRow, titleFromRow, latestWeeks, CHART_LOOKBACK_WEEKS } from "./netflix";
 import { SURVEY_VERSION, decoyFor, RETIRED_DECOYS } from "./questionnaire";
 import { createAndPublishStudy, stopStudy, rewardPence, ukFilters, studyStatus, LIVE_STATUSES } from "./prolific";
@@ -88,11 +88,12 @@ export async function ensureWave(date: string, titleIds: string[]): Promise<{ id
 
   const minutes = config.surveyMinutes();
   const study = await createAndPublishStudy({
-    name: "Quick survey: what you've been watching on Netflix",
+    name: "Quick survey: life in the UK and what you've been watching",
     internalName: `streaming-machine netflix ${date}`,
     description:
-      "Tell us which shows and films you've watched recently on Netflix and what you thought of them. " +
-      "About 8 minutes. You need a Netflix account you can watch at home.",
+      "A few quick questions about life in the UK (including how you voted in 2024, which you can decline), " +
+      "then, if you watch Netflix, which of this week's popular series you've seen and what you thought of them. " +
+      "About 8 minutes. Everyone who finishes is paid in full.",
     externalUrl: `${config.appUrl()}/survey?wave=${wave.id}`,
     places,
     minutes,
@@ -227,6 +228,7 @@ export async function computeAndPublish(date: string, titleIds: string[], chartW
 // Orchestrator ------------------------------------------------------------------------------------
 export async function runDaily(date = londonDate()) {
   const steps: Step[] = [];
+  await ensureSchema().catch((e) => steps.push({ step: "schema", ok: false, detail: String(e) }));
   let titleIds: string[] = [];
   let week: string | null = null;
 

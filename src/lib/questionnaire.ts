@@ -148,3 +148,34 @@ export function ageBand(age: number): AgeBand {
   if (age < 65) return "55-64";
   return "65+";
 }
+
+// ---- UK Pulse: fixed statements asked of everyone before the Netflix screener ------------------
+// Never edit the wording or order of an existing statement: it breaks the trend. Add new ones at the end.
+export const UK_STATEMENTS = {
+  direction: "The UK is heading in the right direction",
+  finances: "My household finances will be better in 12 months' time",
+  costOfLiving: "I'm worried about the cost of living",
+  nhs: "The NHS is there when I need it",
+  news: "I trust the news I see",
+  ai: "AI will make my life better",
+  children: "The UK is a good place to bring up children",
+  proud: "I'm proud to be British",
+  localArea: "My local area is improving",
+  safe: "I feel safe where I live",
+} as const;
+export type UkKey = keyof typeof UK_STATEMENTS;
+export const UK_KEYS = Object.keys(UK_STATEMENTS) as UkKey[];
+// Instructed-response item shown in the middle of the statements
+export const UK_CHECK = { label: "To show you're reading, please select 2 for this line", answer: 2, after: 4 } as const;
+export const UK_SCALE = ["Strongly disagree", "Disagree", "Neither", "Agree", "Strongly agree"] as const;
+export const UK_MIN_SECONDS = 12; // faster than this on the statements page = not read
+
+export const PAST_VOTE = [
+  "Labour", "Conservative", "Reform UK", "Liberal Democrat", "Green", "SNP", "Plaid Cymru", "Other party",
+  "Didn't vote", "Can't remember", "Prefer not to say",
+] as const;
+// 2024 UK general election vote shares. Pulse weighting balances the party mix among people who recall voting.
+export const GE2024_SHARES: Record<string, number> = {
+  Labour: 0.337, Conservative: 0.237, "Reform UK": 0.143, "Liberal Democrat": 0.122, Green: 0.067,
+  SNP: 0.025, "Plaid Cymru": 0.007, "Other party": 0.062,
+};

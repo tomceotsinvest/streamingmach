@@ -29,3 +29,17 @@ export const config = {
   maxExclusionRate: () => Number(process.env.GUARD_MAX_EXCLUSION_RATE ?? 0.25),
   maxScoreSwing: () => Number(process.env.GUARD_MAX_SCORE_SWING ?? 15),
 };
+
+// Additive, idempotent schema changes, so new fields don't need a manual SQL step.
+let schemaReady: Promise<void> | null = null;
+export function ensureSchema(): Promise<void> {
+  schemaReady ??= (async () => {
+    const db = sql();
+    await db`alter table respondents add column if not exists gender text`;
+    await db`alter table respondents add column if not exists uk jsonb`;
+    await db`alter table respondents add column if not exists uk_check smallint`;
+    await db`alter table respondents add column if not exists uk_seconds int`;
+    await db`alter table respondents add column if not exists past_vote text`;
+  })().catch((e) => { schemaReady = null; throw e; });
+  return schemaReady;
+}

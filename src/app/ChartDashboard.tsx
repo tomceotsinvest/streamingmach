@@ -234,7 +234,7 @@ export default function ChartDashboard({ snap, brand }: { snap: Snapshot; brand:
 
         <footer className="c-foot">
           <span>Surveyed daily, weighted to the UK adult population over the last 7 days. A full score needs 100 ratings; 50–99 shows as Early.</span>
-          <span>Not affiliated with Netflix.</span>
+          <span>Not affiliated with Netflix. · <a href="/uk" className="c-accent">UK Pulse →</a></span>
         </footer>
       </div>
       {open && <Drawer t={open} match={matches?.get(open.id)} onClose={() => setOpen(null)} />}

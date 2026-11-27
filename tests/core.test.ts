@@ -9,6 +9,8 @@ import { matchScores, similarity } from "@/lib/match";
 import { studyPayload, rewardPence } from "@/lib/prolific";
 import { ATTRIBUTE_KEYS } from "@/lib/questionnaire";
 import demo from "../public/demo-snapshot.json";
+import { computePulse, demoPulseRows } from "@/lib/ukpulse";
+import { ScreenedSchema, ukValid } from "@/lib/submission";
 import type { Snapshot } from "@/lib/scoring";
 
 const TSV = [
@@ -185,5 +187,24 @@ describe("Prolific UK filter lookup", () => {
       { id: "country-of-residence", question: "What country do you currently reside in?", choices: [{ value: "x7", label: "United Kingdom" }] },
     ])).toEqual({ filter_id: "country-of-residence", selected_values: ["x7"] });
     expect(findUkResidenceFilter([{ filter_id: "nationality", title: "Nationality", choices: { "1": "United Kingdom" } }])).toBeNull();
+  });
+});
+
+describe("UK Pulse", () => {
+  it("produces rolling readings, a 4-week change and subgroup breakdowns", () => {
+    const p = computePulse(demoPulseRows(40));
+    expect(p.days.length).toBeGreaterThan(30);
+    expect(p.latest!.n).toBe(7 * 110);
+    for (const v of Object.values(p.latest!.values)) { expect(v.agree).toBeGreaterThan(0); expect(v.agree + v.disagree).toBeLessThanOrEqual(100.0001); }
+    expect(p.latest!.change.direction).not.toBeNull();
+    expect(p.groups!.labels[0]).toBe("All adults");
+  });
+  it("returns an empty tracker with no data", () => expect(computePulse([]).latest).toBeNull());
+  it("validates screen-out answers and the attention item", () => {
+    const uk = { statements: { direction: 2, finances: 3, costOfLiving: 5, nhs: 2, news: 2, ai: 3, children: 4, proud: 4, localArea: 3, safe: 4 }, check: 2, pastVote: "Didn't vote", seconds: 40 };
+    expect(ScreenedSchema.safeParse({ screenedOut: true, waveId: 1, startedAt: "x", about: { age: 30, region: "London", gender: "Woman", grade: "C1" }, uk }).success).toBe(true);
+    expect(ukValid({ check: 2, seconds: 40 })).toBe(true);
+    expect(ukValid({ check: 3, seconds: 40 })).toBe(false);
+    expect(ukValid({ check: 2, seconds: 5 })).toBe(false);
   });
 });

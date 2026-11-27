@@ -60,7 +60,11 @@ create table if not exists respondents (
   best_title      text,
   attention_ok    boolean,
   decoy_claimed   boolean,
-  straightliner   boolean
+  straightliner   boolean,
+  uk              jsonb,                       -- UK Pulse statements, 1-5
+  uk_check        smallint,
+  uk_seconds      int,
+  past_vote       text
 );
 create index if not exists respondents_completed_idx on respondents (completed_at);
 create index if not exists respondents_pid_idx on respondents (prolific_pid);

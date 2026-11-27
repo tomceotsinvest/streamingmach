@@ -1,0 +1,37 @@
+/* UK Pulse, in the Dusk palette (shares .chart tokens) */
+.u-nav { color: var(--c-accent); text-decoration: none; }
+.u-nav:hover { text-decoration: underline; }
+.u-early { margin: 24px 0 0; padding: 12px 16px; background: var(--c-m0); color: #4A2A63; font-size: 15px; }
+.u-empty { padding: 48px 0; max-width: 640px; }
+
+.u-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin-top: 32px; border-top: 2px solid var(--c-rule); }
+.u-card { display: flex; flex-direction: column; gap: 10px; padding: 24px 24px 28px 0; border-bottom: 1px solid var(--c-rule); min-width: 0; }
+@media (min-width: 761px) { .u-card { padding-left: 24px; border-left: 1px solid var(--c-rule); } }
+.u-card h3 { margin: 0; min-height: 2.6em; font-size: 19px; line-height: 1.3; font-weight: 700; }
+.u-figs { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.u-big { font-family: var(--c-display); font-size: 72px; line-height: .9; font-weight: 900; font-stretch: 70%; color: var(--c-accent); }
+.u-big small { margin-left: 6px; font-family: "Archivo", system-ui, sans-serif; font-size: 15px; font-weight: 700; font-stretch: 100%; color: var(--c-body); letter-spacing: 0; }
+.u-sub { text-align: right; font-size: 14px; color: var(--c-muted); line-height: 1.4; }
+.u-chg { font-size: 13px; font-weight: 700; letter-spacing: .03em; }
+.u-up { color: var(--c-good); }
+.u-down { color: var(--c-low); }
+.u-flat { color: var(--c-muted); font-weight: 600; }
+
+.u-spark { margin: 6px 0 0; }
+.u-spark svg { display: block; width: 100%; height: 84px; }
+.u-area { fill: var(--c-m0); }
+.u-line { fill: none; stroke: var(--c-accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.u-dot { fill: var(--c-accent); }
+.u-spark figcaption { display: flex; justify-content: space-between; font-size: 12px; color: var(--c-muted); margin-top: 4px; }
+.u-spark-empty { padding: 28px 0; font-size: 13px; color: var(--c-muted); }
+
+.u-table td.u-stmt { min-width: 240px; font-weight: 600; }
+.u-table td.r, .u-table th.r { text-align: right; white-space: nowrap; }
+.u-table td.u-all { font-weight: 800; color: var(--c-accent); }
+
+@media (max-width: 760px) {
+  .u-grid { grid-template-columns: 1fr; }
+  .u-card { padding-right: 0; }
+  .u-card h3 { min-height: 0; font-size: 17px; }
+  .u-big { font-size: 56px; }
+}

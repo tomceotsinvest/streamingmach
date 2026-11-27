@@ -1,6 +1,6 @@
 import { RETIRED_DECOYS } from "@/lib/questionnaire";
 import { NextResponse } from "next/server";
-import { sql, dbUrl } from "@/lib/db";
+import { sql, dbUrl, ensureSchema } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +38,13 @@ export async function GET() {
       from respondents where completed_at > now() - interval '7 days'`;
     const [rated] = await db`select count(*)::int as ratings, count(distinct title_id)::int as titles_rated from ratings g
                              join respondents r on r.id=g.respondent_id where r.completed_at > now() - interval '7 days'`;
+    let schema = "ok";
+    try { await ensureSchema(); } catch (e) { schema = String(e).slice(0, 200); }
+    const [pulse] = await db`select count(*) filter (where uk is not null)::int as answered,
+        count(*) filter (where uk is not null and status='screened')::int as from_screenouts,
+        count(*) filter (where uk is not null and uk_check = 2)::int as passed_check,
+        max(completed_at) filter (where uk is not null) as last_at
+      from respondents where completed_at > now() - interval '7 days'`.catch(() => [{ error: "pulse columns missing" }]);
     // Aggregate quality breakdown (counts only, no respondent-level data)
     const [q] = await db`with c as (
         select r.id, r.duration_sec, r.attention_ok, (r.decoy_claimed and not coalesce(w.decoy = any(${RETIRED_DECOYS}), false)) as decoy_claimed, r.straightliner, w.wave_date,
@@ -66,7 +73,7 @@ export async function GET() {
     const flatVals = await db`select a.v as value, count(*)::int as n from ratings g join respondents r on r.id=g.respondent_id,
         lateral (select distinct value::text as v from jsonb_each(g.attributes)) a
       where r.straightliner and r.completed_at > now() - interval '7 days' group by 1 order by 1`;
-    return NextResponse.json({ ok: true, db: shape, tables: tables.map((t) => t.table_name), waves, last7days: { ...resp, ...rated }, quality: { ...q, straightline_values: flatVals } });
+    return NextResponse.json({ ok: true, db: shape, tables: tables.map((t) => t.table_name), waves, last7days: { ...resp, ...rated }, quality: { ...q, straightline_values: flatVals }, schema, ukPulse: pulse });
   } catch (e) {
     const err = e as { code?: string; message?: string };
     const msg = (err.message ?? "").replace(/postgres(ql)?:\/\/[^\s]+/g, "[url]");

@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import {
   REGIONS, SERVICES, HOURS, VIEW_STATUS, ViewStatus, STOP_REASONS, HEARD_VIA, WATCHED_WITH, LOYALTY,
   ATTRIBUTES, ATTRIBUTE_KEYS, OCCASIONS, OCCASION_KEYS, KID_SAFE, GENDERS, HOUSEHOLD, OCCUPATION, GENRES,
-  ATTITUDES, ATTENTION_CHECK,
+  ATTITUDES, ATTENTION_CHECK, UK_STATEMENTS, UK_KEYS, UK_CHECK, PAST_VOTE,
 } from "@/lib/questionnaire";
 import { allocateDeepDives } from "@/lib/allocation";
 import { DECOY_ID, isEligible } from "@/lib/submission";
@@ -52,6 +52,11 @@ export default function SurveyApp() {
   const [attitudes, setAttitudes] = useState<Record<string, number>>({});
   const [bestTitle, setBestTitle] = useState("");
   const [attention, setAttention] = useState("");
+  const [uk, setUk] = useState<Record<string, number>>({});
+  const [ukCheck, setUkCheck] = useState<number | undefined>();
+  const [pastVote, setPastVote] = useState("");
+  const [ukStart, setUkStart] = useState(0);
+  const [ukSeconds, setUkSeconds] = useState(0);
 
   useEffect(() => {
     if (!waveId) { setErr("This survey link is missing its wave. Please return to Prolific."); return; }
@@ -78,10 +83,21 @@ export default function SurveyApp() {
   async function screenOut() {
     setBusy(true);
     const j = await fetch("/api/survey/submit", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ screenedOut: true, waveId, prolificPid: pid, sessionId, startedAt }) })
+      body: JSON.stringify({ screenedOut: true, waveId, prolificPid: pid, sessionId, startedAt,
+        about: { age: Number(age), region, gender, grade }, uk: ukAnswers() }) })
       .then((r) => r.json()).catch(() => ({}));
     setPage("screened"); setBusy(false);
     if (j.redirect) setTimeout(() => { window.location.href = j.redirect; }, 2500);
+  }
+
+  const ukAnswers = () => ({ statements: uk, check: ukCheck, pastVote, seconds: ukSeconds });
+
+  function afterAbout() {
+    if (Number(age) < 18) return screenOut();
+    setUkStart(Date.now()); window.scrollTo(0, 0); setPage("uk");
+  }
+  function afterUk() {
+    setUkSeconds(Math.round((Date.now() - ukStart) / 1000)); window.scrollTo(0, 0); setPage("screener");
   }
 
   function afterScreener() {
@@ -106,6 +122,7 @@ export default function SurveyApp() {
       viewing, stopReasons, plans, heardVia,
       ratings: deep.map((id) => ratings[id]),
       profile: { gender, household, grade, genres, attitudes, bestTitle: bestTitle || null, attention },
+      uk: ukAnswers(),
     };
     const res = await fetch("/api/survey/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const j = await res.json().catch(() => ({}));
@@ -119,21 +136,21 @@ export default function SurveyApp() {
   if (cfg.blocked) return <Shell><h1>Thanks, you've taken part recently</h1><p>You can only take this survey once a week. Please return the study on Prolific so you aren't timed out.</p></Shell>;
 
   const deepIndex = page.startsWith("deep-") ? Number(page.slice(5)) : -1;
-  const steps = 4 + deep.length;
-  const stepNo = page === "screener" ? 1 : page === "grid" ? 2 : page === "followups" ? 3 : deepIndex >= 0 ? 4 + deepIndex : page === "profile" ? steps : 0;
+  const steps = 6 + deep.length;
+  const stepNo = page === "about" ? 1 : page === "uk" ? 2 : page === "screener" ? 3 : page === "grid" ? 4 : page === "followups" ? 5 : deepIndex >= 0 ? 6 + deepIndex : page === "profile" ? steps : 0;
 
   return (
     <Shell progress={stepNo ? stepNo / steps : 0}>
       {page === "intro" && (
         <>
-          <h1>What have you been watching on Netflix?</h1>
-          <p>We'll ask which of this week's most popular Netflix series you've seen, and what you thought of a few of them. It takes about 8 minutes.</p>
+          <h1>Life in the UK, and what you've been watching</h1>
+          <p>First, a few quick questions about you and life in the UK. Then, if you watch Netflix, we'll ask which of this week's most popular series you've seen and what you thought of a few of them. It takes about 8 minutes.</p>
           <p className="s-note">Your answers are anonymous and used only to rank shows for a public guide to what's worth watching. We don't collect your name or contact details.</p>
-          <Next onClick={() => setPage("screener")}>Start</Next>
+          <Next onClick={() => setPage("about")}>Start</Next>
         </>
       )}
 
-      {page === "screener" && (
+      {page === "about" && (
         <>
           <Q n="1" label="How old are you?">
             <input className="s-input" type="number" inputMode="numeric" min={16} max={110} value={age} onChange={(e) => setAge(e.target.value)} />
@@ -143,13 +160,48 @@ export default function SurveyApp() {
               <option value="">Choose…</option>{REGIONS.map((r) => <option key={r}>{r}</option>)}
             </select>
           </Q>
-          <Q n="3" label="Which of these services can you watch at home?" hint="Select all that apply">
+          <Q n="3" label="Which best describes you?"><Radio options={[...GENDERS]} value={gender} onChange={setGender} /></Q>
+          <Q n="4" label="Which best describes the occupation of the main earner in your household?">
+            <Radio options={Object.values(OCCUPATION)} value={grade ? OCCUPATION[grade as keyof typeof OCCUPATION] : ""}
+              onChange={(v) => setGrade((Object.keys(OCCUPATION) as (keyof typeof OCCUPATION)[]).find((k) => OCCUPATION[k] === v)!)} />
+          </Q>
+          <Next disabled={!age || !region || !gender || !grade || busy} onClick={afterAbout}>Continue</Next>
+        </>
+      )}
+
+      {page === "uk" && (
+        <>
+          <h2>Life in the UK</h2>
+          <Q label="How much do you agree or disagree with each of these?" hint="1 = strongly disagree, 3 = neither, 5 = strongly agree">
+            <div className="s-attr">
+              {UK_KEYS.flatMap((k, i) => {
+                const row = (
+                  <div className="s-attr-row" key={k}><span>{UK_STATEMENTS[k]}</span>
+                    <Scale from={1} to={5} value={uk[k]} onChange={(v) => setUk({ ...uk, [k]: v })} compact /></div>
+                );
+                return i === UK_CHECK.after ? [row, (
+                  <div className="s-attr-row" key="check"><span>{UK_CHECK.label}</span>
+                    <Scale from={1} to={5} value={ukCheck} onChange={setUkCheck} compact /></div>
+                )] : [row];
+              })}
+            </div>
+          </Q>
+          <Q label="Which party did you vote for at the 2024 general election?">
+            <Radio options={[...PAST_VOTE]} value={pastVote} onChange={setPastVote} />
+          </Q>
+          <Next disabled={UK_KEYS.some((k) => !uk[k]) || !ukCheck || !pastVote} onClick={afterUk}>Continue</Next>
+        </>
+      )}
+
+      {page === "screener" && (
+        <>
+          <Q n="1" label="Which of these services can you watch at home?" hint="Select all that apply">
             <Chips options={[...SERVICES]} value={services} onToggle={(x) => setServices(x === "None of these" ? ["None of these"] : toggle(services.filter((s) => s !== "None of these"), x))} />
           </Q>
-          <Q n="4" label="In a typical week, how many hours do you spend watching streamed TV and films?">
+          <Q n="2" label="In a typical week, how many hours do you spend watching streamed TV and films?">
             <Radio options={[...HOURS]} value={hours} onChange={setHours} />
           </Q>
-          <Next disabled={!age || !region || !services.length || !hours || busy} onClick={afterScreener}>Continue</Next>
+          <Next disabled={!services.length || !hours || busy} onClick={afterScreener}>Continue</Next>
         </>
       )}
 
@@ -249,13 +301,8 @@ export default function SurveyApp() {
         <>
           <h2>A little about you</h2>
           <p className="s-note">This lets us show people recommendations from viewers like them.</p>
-          <Q label="Which best describes you?"><Radio options={[...GENDERS]} value={gender} onChange={setGender} /></Q>
           <Q label="Who lives in your household?" hint="Select all that apply">
             <Chips options={[...HOUSEHOLD]} value={household} onToggle={(x) => setHousehold(toggle(household, x))} />
-          </Q>
-          <Q label="Which best describes the occupation of the main earner in your household?">
-            <Radio options={Object.values(OCCUPATION)} value={grade ? OCCUPATION[grade as keyof typeof OCCUPATION] : ""}
-              onChange={(v) => setGrade((Object.keys(OCCUPATION) as (keyof typeof OCCUPATION)[]).find((k) => OCCUPATION[k] === v)!)} />
           </Q>
           <Q label="Which genres do you enjoy most?" hint="Pick up to 5">
             <Chips options={[...GENRES]} value={genres} onToggle={(x) => setGenres(toggle(genres, x, 5))} />
@@ -273,12 +320,12 @@ export default function SurveyApp() {
           </Q>
           <Q label={ATTENTION_CHECK.prompt}><Radio options={[...ATTENTION_CHECK.options]} value={attention} onChange={setAttention} /></Q>
           {err && <p className="s-error">{err}</p>}
-          <Next disabled={busy || !gender || !household.length || !grade || !genres.length || Object.keys(attitudes).length < Object.keys(ATTITUDES).length || !attention}
+          <Next disabled={busy || !household.length || !genres.length || Object.keys(attitudes).length < Object.keys(ATTITUDES).length || !attention}
             onClick={submit}>{busy ? "Saving…" : "Finish"}</Next>
         </>
       )}
 
-      {page === "screened" && (<><h1>Thanks for your time</h1><p>This survey is for people who can watch Netflix, so we won't ask you any more questions. You'll still be paid in full — taking you back to Prolific now…</p></>)}
+      {page === "screened" && (<><h1>Thanks for your time</h1><p>The rest of this survey is for adults who can watch Netflix, so we won't ask you any more questions. You'll still be paid in full — taking you back to Prolific now…</p></>)}
       {page === "done" && (<><h1>Thank you</h1><p>Taking you back to Prolific…</p></>)}
     </Shell>
   );
